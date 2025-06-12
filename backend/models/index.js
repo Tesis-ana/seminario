@@ -9,21 +9,21 @@ db.sequelize = sequelize;
 // Importación de modelos
 db.User = require("./user.js");
 db.Paciente = require("./paciente.js");
-db.UsuarioPaciente = require("./usuario_paciente.js");
+db.Profesional = require("./profesional.js");
 db.Imagen = require("./imagen.js");
 db.Segmentacion = require("./segmentacion.js");
 db.PWATScore = require("./pwatscore.js");
 
 // Relaciones
 
-db.User.belongsToMany(db.Paciente, {
-  through: db.UsuarioPaciente,
-  foreignKey: 'user_id'
-});
-db.Paciente.belongsToMany(db.User, {
-  through: db.UsuarioPaciente,
-  foreignKey: 'paciente_id'
-});
+db.User.hasOne(db.Paciente, { foreignKey: 'user_id' });
+db.Paciente.belongsTo(db.User, { foreignKey: 'user_id' });
+
+db.User.hasOne(db.Profesional, { foreignKey: 'user_id' });
+db.Profesional.belongsTo(db.User, { foreignKey: 'user_id' });
+
+db.Profesional.hasMany(db.Paciente, { foreignKey: 'profesional_id' });
+db.Paciente.belongsTo(db.Profesional, { foreignKey: 'profesional_id' });
 
 db.Paciente.hasMany(db.Imagen, { foreignKey: 'paciente_id' });
 db.Imagen.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });
