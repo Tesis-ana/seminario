@@ -4,7 +4,7 @@ const Op = db.Sequelize.Op;
 
 const listarPwatscores = async (req, res) => {
     try {
-        const data = await db.Pwatscore.findAll();
+        const data = await db.PWATScore.findAll();
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
@@ -16,7 +16,7 @@ const listarPwatscores = async (req, res) => {
 
 const crearPwatscore = async (req, res) => {
     try {
-        const data = await db.Pwatscore.create(req.body);
+        const data = await db.PWATScore.create(req.body);
         return res.status(201).json(data);
     } catch (err) {
         return res.status(500).json({
@@ -29,7 +29,7 @@ const crearPwatscore = async (req, res) => {
 const buscarPwatscore = async (req, res) => {
     const { id } = req.body;
     try {
-        const data = await db.Pwatscore.findOne({ where: { id } });
+        const data = await db.PWATScore.findOne({ where: { id } });
         if (!data) {
             return res.status(404).json({ message: "El pwatscore no existe." });
         }
@@ -45,7 +45,7 @@ const buscarPwatscore = async (req, res) => {
 const actualizarPwatscore = async (req, res) => {
     const { id, ...resto } = req.body;
     try {
-        const [actualizados] = await db.Pwatscore.update(resto, { where: { id } });
+        const [actualizados] = await db.PWATScore.update(resto, { where: { id } });
         if (actualizados === 0) {
             return res.status(404).json({ message: "El pwatscore no fue encontrado para actualizar." });
         }
@@ -61,7 +61,7 @@ const actualizarPwatscore = async (req, res) => {
 const eliminarPwatscore = async (req, res) => {
     const { id } = req.body;
     try {
-        const eliminados = await db.Pwatscore.destroy({ where: { id } });
+        const eliminados = await db.PWATScore.destroy({ where: { id } });
         if (eliminados === 0) {
             return res.status(404).json({ message: "El pwatscore no fue encontrado para eliminar." });
         }
