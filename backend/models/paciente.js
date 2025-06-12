@@ -8,7 +8,9 @@ const Paciente = sequelize.define('paciente', {
     fecha_nacimiento: { type: DataTypes.DATEONLY },
     sexo: { type: DataTypes.ENUM('M', 'F', 'Otro') },
     fecha_ingreso: { type: DataTypes.DATEONLY },
-    comentarios: { type: DataTypes.TEXT }
+    comentarios: { type: DataTypes.TEXT },
+    user_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
+    profesional_id: { type: DataTypes.INTEGER, allowNull: false }
 });
 
 module.exports = Paciente;

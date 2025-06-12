@@ -3,6 +3,7 @@ const router = express.Router();
 
 const usersRoutes = require('./user.routes.js');
 const pacientesRoutes = require('./paciente.routes.js');
+const profesionalesRoutes = require('./profesional.routes.js');
 const imagenesRoutes = require('./imagen.routes.js');
 const segmentacionesRoutes = require('./segmentacion.routes.js');
 const pwatscoreRoutes = require('./pwatscore.routes.js');
@@ -11,6 +12,7 @@ module.exports = app => {
     // Configurar las rutas principales
     app.use('/users', usersRoutes);
     app.use('/pacientes', pacientesRoutes);
+    app.use('/profesionales', profesionalesRoutes);
     app.use('/imagenes', imagenesRoutes);
     app.use('/segmentaciones', segmentacionesRoutes);
     app.use('/pwatscore', pwatscoreRoutes);
