@@ -4,14 +4,23 @@ const sequelize = require('../config/database');
 const PWATScore = sequelize.define('pwatscore', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     evaluador: { type: DataTypes.ENUM('modelo', 'experto') },
-    categoria3: { type: DataTypes.TINYINT },
-    categoria4: { type: DataTypes.TINYINT },
-    categoria5: { type: DataTypes.TINYINT },
-    categoria6: { type: DataTypes.TINYINT },
-    categoria7: { type: DataTypes.TINYINT },
-    categoria8: { type: DataTypes.TINYINT },
+    categorias: { type: DataTypes.JSON, allowNull: false },
     fecha_evaluacion: { type: DataTypes.DATE },
-    observaciones: { type: DataTypes.TEXT }
+    observaciones: { type: DataTypes.TEXT },
+    imagen_id: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: 'imagen', // Nombre de la tabla referenciada
+            key: 'id' // Clave primaria de la tabla referenciada
+        }
+    },
+    segmentacion_id: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: 'segmentacion', // Nombre de la tabla referenciada
+            key: 'id' // Clave primaria de la tabla referenciada
+        }
+    },
 });
 
 module.exports = PWATScore;

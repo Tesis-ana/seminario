@@ -16,14 +16,13 @@ async function connectToDatabase() {
     attempt++;
     try {
       await db.sequelize.authenticate();
-      console.log("Conexión a la base de datos establecida correctamente.");
       
       // Sincronizar modelos después de conectar
       await db.sequelize.sync({ force: true });
-      console.log("Actualización de base de datos lista.");
+      console.log("🗄️ Actualización de base de datos lista.");
       return;
     } catch (error) {
-      console.error(`Error al conectar a la base de datos (Intento ${attempt}):`, error.message);
+      console.error(`❌ Error al conectar a la base de datos (Intento ${attempt}):`, error.message);
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
   }
@@ -41,9 +40,9 @@ connectToDatabase().then(() => {
 
   const PORT = values.RUN_PORT || 8080;
   app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}.`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   });
 }).catch(error => {
-  console.error("Error crítico inesperado:", error);
+  console.error("❌ Error crítico inesperado:", error);
   process.exit(1);
 });

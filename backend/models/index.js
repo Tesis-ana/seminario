@@ -31,9 +31,10 @@ db.Imagen.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });
 db.Imagen.hasMany(db.Segmentacion, { foreignKey: 'imagen_id' });
 db.Segmentacion.belongsTo(db.Imagen, { foreignKey: 'imagen_id' });
 
-
-
 db.Imagen.hasMany(db.PWATScore, { foreignKey: 'imagen_id' });
 db.PWATScore.belongsTo(db.Imagen, { foreignKey: 'imagen_id' });
+
+db.Segmentacion.hasMany(db.PWATScore, { foreignKey: 'segmentacion_id' });
+db.PWATScore.belongsTo(db.Segmentacion, { foreignKey: 'segmentacion_id' });
 
 module.exports = db;
