@@ -1,41 +1,6 @@
-
-const values = require("../config/const.js");
+const sequelize = require("../config/database");
 const Sequelize = require("sequelize");
-require('dotenv').config();
 
-// Configuración de Sequelize con opciones de reconexión
-const sequelize = new Sequelize(values.DB_NAME, values.DB_USER, values.DB_PASSWORD, {
-  host: values.DB_HOST,
-  dialect: values.DB_DIALECT,
-  pool: {
-    max: values.DB_POOL_MAX,
-    min: values.DB_POOL_MIN,
-    acquire: values.DB_POOL_ACQUIRE,
-    idle: values.DB_POOL_IDLE
-  },
-  retry: {
-    match: [
-      /ETIMEDOUT/,
-      /EHOSTUNREACH/,
-      /ECONNRESET/,
-      /ECONNREFUSED/,
-      /ETIMEDOUT/,
-      /ESOCKETTIMEDOUT/,
-      /EHOSTUNREACH/,
-      /EPIPE/,
-      /EAI_AGAIN/,
-      /SequelizeConnectionError/,
-      /SequelizeConnectionRefusedError/,
-      /SequelizeHostNotFoundError/,
-      /SequelizeHostNotReachableError/,
-      /SequelizeInvalidConnectionError/,
-      /SequelizeConnectionTimedOutError/
-    ],
-    max: Infinity,
-    backoffBase: 5000,
-    backoffExponent: 1.5
-  }
-});
 
 const db = {};
 db.Sequelize = Sequelize;
