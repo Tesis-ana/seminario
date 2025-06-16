@@ -1,36 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { BACKEND_URL } from '../lib/api';
+import Link from 'next/link';
 
 export default function Consultas() {
   const router = useRouter();
-  const [datos, setDatos] = useState({});
-  const [error, setError] = useState('');
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const stored = localStorage.getItem('token');
+    if (!stored) {
       router.replace('/');
-      return;
+    } else {
+      setToken(stored);
     }
-    const fetchData = async () => {
-      try {
-        const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
-        const results = {};
-        for (const ep of endpoints) {
-          const res = await fetch(`${BACKEND_URL}/${ep}`, {
+  if (!token) {
+    return null;
+  }
 
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          results[ep] = await res.json();
-        }
-        setDatos(results);
-      } catch (err) {
-        setError('Error al obtener datos');
-      }
-    };
-    fetchData();
-  }, [router]);
+  const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
+
+      <ul>
+        {endpoints.map(ep => (
+          <li key={ep}>
+            <Link href={`/consultas/${ep}`}>{ep}</Link>
+          </li>
+        ))}
+      </ul>
 
   return (
     <div>
