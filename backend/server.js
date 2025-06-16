@@ -38,7 +38,7 @@ connectToDatabase().then(() => {
   // Importación de Router principal
   require('./routes/main.routes')(app);
 
-  const PORT = values.RUN_PORT || 8080;
+  const PORT = values.RUN_PORT || 5000;
   app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   });
