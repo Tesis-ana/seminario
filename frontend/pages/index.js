@@ -9,6 +9,12 @@ export default function Home() {
   const [contra, setContra] = useState('');
   const [error, setError] = useState('');
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
+
+
   useEffect(() => {
     const stored = localStorage.getItem('token');
     if (stored) {
@@ -64,6 +70,7 @@ export default function Home() {
       <p>
         <a href="/consultas">Ir a consultas</a>
       </p>
+      <button onClick={handleLogout}>Cerrar sesi\u00f3n</button>
     </div>
   );
 }
