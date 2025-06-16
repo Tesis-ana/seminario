@@ -68,6 +68,38 @@ export default function ConsultaTipo() {
     fetchData();
   }, [router, tipo]);
 
+  const ejecutarConsulta = async (op) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Token no encontrado');
+      return;
+    }
+
+    try {
+      const opciones = {
+        method: op.metodo,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
+        const input = prompt('Ingrese el JSON para la consulta', '{}');
+        if (input) {
+          opciones.body = input;
+        }
+      }
+
+      const res = await fetch(`${BACKEND_URL}${op.ruta}`, opciones);
+      const json = await res.json();
+      setData(json);
+      setError('');
+    } catch (err) {
+      setError('Error al ejecutar la consulta');
+    }
+  };
+
   if (error) return <p style={{color:'red'}}>{error}</p>;
   if (!data) return <p>Cargando...</p>;
 
@@ -80,7 +112,10 @@ export default function ConsultaTipo() {
           <ul>
             {operaciones[tipo].map((op, idx) => (
               <li key={idx}>
-                <code>{op.metodo} {op.ruta}</code> - {op.descripcion}
+                <button onClick={() => ejecutarConsulta(op)}>
+                  <code>{op.metodo} {op.ruta}</code>
+                </button>
+                {' '}- {op.descripcion}
               </li>
             ))}
           </ul>
