@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { BACKEND_URL } from '../lib/api';
 
 export default function Home() {
   const router = useRouter();
@@ -19,7 +20,8 @@ export default function Home() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('http://localhost:5000/users/login', {
+      const res = await fetch(`${BACKEND_URL}/users/login`, {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correo, contra })

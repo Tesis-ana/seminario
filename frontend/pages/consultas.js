@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { BACKEND_URL } from '../lib/api';
 
 export default function Consultas() {
   const router = useRouter();
@@ -17,7 +18,8 @@ export default function Consultas() {
         const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
         const results = {};
         for (const ep of endpoints) {
-          const res = await fetch(`http://localhost:5000/${ep}`, {
+          const res = await fetch(`${BACKEND_URL}/${ep}`, {
+
             headers: { Authorization: `Bearer ${token}` }
           });
           results[ep] = await res.json();
