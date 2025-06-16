@@ -9,5 +9,6 @@ router.post("/crear", controlador.crearUser);
 router.post("/buscar", controlador.buscarUser);
 router.put("/", controlador.actualizarUser);
 router.delete("/", controlador.eliminarUser);
+router.post("/login", controlador.login);
 
 module.exports = router;

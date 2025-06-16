@@ -5,7 +5,7 @@ const key = require('../config/const.js').JWT_SECRET;
 
 const tokenBlacklist = new Set();
 
-async function generateToken(usuario) {
+async function generarToken(usuario) {
   try {
     const token = await jwt.sign(
       {
@@ -78,7 +78,7 @@ function decode(token) {
 }
 
 module.exports = {
-    generateToken,
+    generarToken,
     blacklist,
     decode
 };
