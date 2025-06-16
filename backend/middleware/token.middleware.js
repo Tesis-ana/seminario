@@ -1,4 +1,3 @@
-const db = require('../models');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const key = require('../config/const.js').JWT_SECRET;
