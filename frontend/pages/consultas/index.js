@@ -13,25 +13,24 @@ export default function Consultas() {
     } else {
       setToken(stored);
     }
+  }, [router]);
+
   if (!token) {
     return null;
   }
 
   const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
 
+  return (
+    <div>
+      <h1>Consultas del backend</h1>
       <ul>
-        {endpoints.map(ep => (
+        {endpoints.map((ep) => (
           <li key={ep}>
             <Link href={`/consultas/${ep}`}>{ep}</Link>
           </li>
         ))}
       </ul>
-
-  return (
-    <div>
-      <h1>Consultas del backend</h1>
-      {error && <p style={{color:'red'}}>{error}</p>}
-      <pre>{JSON.stringify(datos, null, 2)}</pre>
     </div>
   );
 }
