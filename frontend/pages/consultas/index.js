@@ -19,7 +19,7 @@ export default function Consultas() {
     return null;
   }
 
-  const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
+  const endpoints = ['users', 'pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
 
   return (
     <div>

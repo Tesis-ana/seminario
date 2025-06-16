@@ -33,10 +33,12 @@ const crearUser = async (req, res) => {
     }
 };
 
+
+
 const buscarUser = async (req, res) => {
     const { id } = req.body;
     try {
-        const data = await db.User.findOne({ where: { id } });
+        const data = await db.User.findOne({ where: { rut:id } });
         if (!data) {
             return res.status(404).json({ message: "El user no existe." });
         }

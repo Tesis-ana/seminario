@@ -3,6 +3,34 @@ import { useRouter } from 'next/router';
 import { BACKEND_URL } from '../../lib/api';
 
 const operaciones = {
+  users: [
+    { metodo: 'GET', ruta: '/users', descripcion: 'Listar users' },
+    {
+      metodo: 'POST',
+      ruta: '/users/crear',
+      descripcion: 'Crear user',
+      campos: ['nombre', 'correo', 'contra', 'rol', 'rut']
+    },
+    {
+      metodo: 'POST',
+      ruta: '/users/buscar',
+      descripcion: 'Buscar user',
+      campos: ['id']
+    },
+    {
+      metodo: 'PUT',
+      ruta: '/users',
+      descripcion: 'Actualizar user',
+      campos: ['id', 'nombre', 'correo', 'contra', 'rol', 'rut']
+    },
+    { metodo: 'DELETE', ruta: '/users', descripcion: 'Eliminar user', campos: ['id'] },
+    {
+      metodo: 'POST',
+      ruta: '/users/login',
+      descripcion: 'Login user',
+      campos: ['correo', 'contra']
+    }
+  ],
   pacientes: [
     { metodo: 'GET', ruta: '/pacientes', descripcion: 'Listar pacientes' },
     {
@@ -145,37 +173,23 @@ export default function ConsultaTipo() {
   }, [router, tipo]);
 
   const ejecutarConsulta = async (op, body = null) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Token no encontrado');
+      return;
+    }
 
-        opciones.body = JSON.stringify(body);
-                <form onSubmit={e => { e.preventDefault(); ejecutarConsulta(op, bodies[idx]); }}>
-                  {op.campos && op.campos.map(campo => (
-                    campo === 'categorias' ? (
-                      <textarea
-                        key={campo}
-                        rows={3}
-                        style={{ width: '100%', display:'block', marginBottom:'0.5rem' }}
-                        placeholder={campo}
-                        value={bodies[idx]?.[campo] || ''}
-                        onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.value } })}
-                      />
-                    ) : (
-                      <input
-                        key={campo}
-                        type="text"
-                        placeholder={campo}
-                        style={{ display:'block', marginBottom:'0.5rem' }}
-                        value={bodies[idx]?.[campo] || ''}
-                        onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.value } })}
-                      />
-                    )
-                  ))}
+    try {
+      const opciones = {
+        method: op.metodo,
+        headers: {
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       };
 
       if (body && ['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
-        opciones.body = body;
-
+        opciones.body = JSON.stringify(body);
       }
 
       const res = await fetch(`${BACKEND_URL}${op.ruta}`, opciones);
@@ -199,22 +213,33 @@ export default function ConsultaTipo() {
           <ul>
             {operaciones[tipo].map((op, idx) => (
               <li key={idx} style={{marginBottom:'1rem'}}>
-                <form onSubmit={(e) => {e.preventDefault(); ejecutarConsulta(op, bodies[idx]);}}>
+                <form onSubmit={e => { e.preventDefault(); ejecutarConsulta(op, bodies[idx]); }}>
                   <div>
                     <code>{op.metodo} {op.ruta}</code> - {op.descripcion}
                   </div>
-                  {['POST','PUT','DELETE'].includes(op.metodo) && (
-                    <textarea
-                      rows={3}
-                      style={{width:'100%'}}
-                      placeholder="{ }"
-                      value={bodies[idx] || ''}
-                      onChange={(e) => setBodies({...bodies, [idx]: e.target.value})}
-                    />
-                  )}
+                  {op.campos && op.campos.map(campo => (
+                    campo === 'categorias' ? (
+                      <textarea
+                        key={campo}
+                        rows={3}
+                        style={{ width: '100%', display:'block', marginBottom:'0.5rem' }}
+                        placeholder={campo}
+                        value={bodies[idx]?.[campo] || ''}
+                        onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.value } })}
+                      />
+                    ) : (
+                      <input
+                        key={campo}
+                        type="text"
+                        placeholder={campo}
+                        style={{ display:'block', marginBottom:'0.5rem' }}
+                        value={bodies[idx]?.[campo] || ''}
+                        onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.value } })}
+                      />
+                    )
+                  ))}
                   <button type="submit">Ejecutar</button>
                 </form>
-
               </li>
             ))}
           </ul>
