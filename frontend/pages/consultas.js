@@ -9,7 +9,7 @@ export default function Consultas() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      router.replace('/login');
+      router.replace('/');
       return;
     }
     const fetchData = async () => {
@@ -17,7 +17,7 @@ export default function Consultas() {
         const endpoints = ['pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
         const results = {};
         for (const ep of endpoints) {
-          const res = await fetch(`http://localhost:8080/${ep}`, {
+          const res = await fetch(`http://localhost:5000/${ep}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           results[ep] = await res.json();
