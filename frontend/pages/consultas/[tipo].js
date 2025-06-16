@@ -70,6 +70,7 @@ export default function ConsultaTipo() {
   }, [router, tipo]);
 
   const ejecutarConsulta = async (op, body = '') => {
+
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Token no encontrado');
@@ -87,6 +88,7 @@ export default function ConsultaTipo() {
 
       if (body && ['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
         opciones.body = body;
+
       }
 
       const res = await fetch(`${BACKEND_URL}${op.ruta}`, opciones);
@@ -125,6 +127,7 @@ export default function ConsultaTipo() {
                   )}
                   <button type="submit">Ejecutar</button>
                 </form>
+
               </li>
             ))}
           </ul>
