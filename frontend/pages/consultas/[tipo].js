@@ -46,6 +46,7 @@ export default function ConsultaTipo() {
   const { tipo } = router.query;
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [bodies, setBodies] = useState({});
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -68,7 +69,8 @@ export default function ConsultaTipo() {
     fetchData();
   }, [router, tipo]);
 
-  const ejecutarConsulta = async (op) => {
+  const ejecutarConsulta = async (op, body = '') => {
+
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Token no encontrado');
@@ -84,11 +86,9 @@ export default function ConsultaTipo() {
         }
       };
 
-      if (['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
-        const input = prompt('Ingrese el JSON para la consulta', '{}');
-        if (input) {
-          opciones.body = input;
-        }
+      if (body && ['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
+        opciones.body = body;
+
       }
 
       const res = await fetch(`${BACKEND_URL}${op.ruta}`, opciones);
@@ -111,11 +111,23 @@ export default function ConsultaTipo() {
           <h2>Consultas disponibles</h2>
           <ul>
             {operaciones[tipo].map((op, idx) => (
-              <li key={idx}>
-                <button onClick={() => ejecutarConsulta(op)}>
-                  <code>{op.metodo} {op.ruta}</code>
-                </button>
-                {' '}- {op.descripcion}
+              <li key={idx} style={{marginBottom:'1rem'}}>
+                <form onSubmit={(e) => {e.preventDefault(); ejecutarConsulta(op, bodies[idx]);}}>
+                  <div>
+                    <code>{op.metodo} {op.ruta}</code> - {op.descripcion}
+                  </div>
+                  {['POST','PUT','DELETE'].includes(op.metodo) && (
+                    <textarea
+                      rows={3}
+                      style={{width:'100%'}}
+                      placeholder="{ }"
+                      value={bodies[idx] || ''}
+                      onChange={(e) => setBodies({...bodies, [idx]: e.target.value})}
+                    />
+                  )}
+                  <button type="submit">Ejecutar</button>
+                </form>
+
               </li>
             ))}
           </ul>
