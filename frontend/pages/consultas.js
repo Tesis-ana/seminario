@@ -19,6 +19,7 @@ export default function Consultas() {
         const results = {};
         for (const ep of endpoints) {
           const res = await fetch(`${BACKEND_URL}/${ep}`, {
+
             headers: { Authorization: `Bearer ${token}` }
           });
           results[ep] = await res.json();

@@ -14,6 +14,7 @@ export default function Home() {
     setToken(null);
   };
 
+
   useEffect(() => {
     const stored = localStorage.getItem('token');
     if (stored) {
@@ -26,6 +27,7 @@ export default function Home() {
     setError('');
     try {
       const res = await fetch(`${BACKEND_URL}/users/login`, {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correo, contra })

@@ -20,10 +20,10 @@ const saltRounds = 10;
 
 const crearUser = async (req, res) => {
     try {
-        const { nombre,correo,contra,rol} = req.body;
+        const { nombre,correo,contra,rol,rut} = req.body;
         console.log(req.body);
         const hashedPassword = await bcrypt.hash(contra, saltRounds);
-        const data = await db.User.create({ nombre ,correo ,rol, contrasena_hash: hashedPassword });
+        const data = await db.User.create({ rut,nombre ,correo ,rol, contrasena_hash: hashedPassword });
         return res.status(201).json(data);
     } catch (err) {
         return res.status(500).json({
@@ -129,5 +129,6 @@ module.exports = {
     buscarUser,
     actualizarUser,
     eliminarUser,
-    login
+    login,
+    logout
 };
