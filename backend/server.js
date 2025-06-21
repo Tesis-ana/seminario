@@ -3,10 +3,19 @@ const cors = require('cors');
 const app = express();
 const db = require("./models/index.js");
 const values = require("./config/const.js");
+const verifyToken = require('./middleware/auth.middleware.js');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Verificar token en todas las rutas excepto login y raiz
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/users/login') {
+    return next();
+  }
+  return verifyToken(req, res, next);
+});
 
 // Función para conectar a la base de datos con reintentos infinitos
 async function connectToDatabase() {
