@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BACKEND_URL } from '../../lib/api';
+import { BACKEND_URL, apiFetch } from '../../lib/api';
 
 const operaciones = {
   users: [
@@ -160,9 +160,7 @@ export default function ConsultaTipo() {
     if (!tipo) return;
     const fetchData = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/${tipo}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiFetch(`/${tipo}`);
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -173,17 +171,10 @@ export default function ConsultaTipo() {
   }, [router, tipo]);
 
   const ejecutarConsulta = async (op, body = null) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Token no encontrado');
-      return;
-    }
-
     try {
       const opciones = {
         method: op.metodo,
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       };
@@ -192,7 +183,7 @@ export default function ConsultaTipo() {
         opciones.body = JSON.stringify(body);
       }
 
-      const res = await fetch(`${BACKEND_URL}${op.ruta}`, opciones);
+      const res = await apiFetch(op.ruta, opciones);
       const json = await res.json();
       setData(json);
       setError('');
