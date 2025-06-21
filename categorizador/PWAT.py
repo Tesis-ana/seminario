@@ -245,10 +245,11 @@ def predict_mask(model, image):
         np.array: Máscara de predicción.
     """
     preprocessed_image = prepare_image_for_prediction(image)
-    pred_mask = model.predict(preprocessed_image)
+    pred_mask = model.predict(preprocessed_image, verbose=0)
     pred_mask = np.squeeze(pred_mask, axis=0)
     
     return pred_mask
+
 
 def postprocess_mask(pred_mask, threshold=0.5):
     """
@@ -311,7 +312,7 @@ def save_mask(pred_mask, save_path):
     mask_image = Image.fromarray(mask.squeeze(), mode='L')
     mask_image.save(save_path)
 
-def predecir_mascara(imagen_path, modelo, target_size=(256, 256), threshold=0.5):
+def predecir_mascara(imagen_path, modelo=model, target_size=(256, 256), threshold=0.5):
     imagen = load_and_preprocess_image(imagen_path, target_size=target_size)
     if imagen is None:
         raise ValueError(f"No se pudo cargar la imagen: {imagen_path}")
@@ -324,21 +325,24 @@ def predecir_mascara(imagen_path, modelo, target_size=(256, 256), threshold=0.5)
     save_mask(mascara_predicha, ruta_mascara)
     return ruta_mascara
 
-def predecir(image_path,mask_path):
+def predecir(image_path, mask_path):
+
+    # Silenciar los mensajes no deseados de PyRadiomics
+    logging.getLogger('radiomics').setLevel(logging.ERROR)
 
     extractor = radiomics.featureextractor.RadiomicsFeatureExtractor()
 
-    img=cv2.imread(image_path,cv2.IMREAD_GRAYSCALE)
-    mask=cv2.imread(mask_path,cv2.IMREAD_GRAYSCALE)
-    mask=(mask/np.max(mask)).astype(int)
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    mask = (mask / np.max(mask)).astype(int)
 
-    img= cv2.resize(img, (256, 256))
+    img = cv2.resize(img, (256, 256))
     mask = cv2.resize(mask, (256, 256))
 
-    nrrd.write(image_path.replace(".jpg",'.nrrd'), img)
-    nrrd.write(mask_path.replace(".jpg",'.nrrd'), mask)
+    nrrd.write(image_path.replace(".jpg", '.nrrd'), img)
+    nrrd.write(mask_path.replace(".jpg", '.nrrd'), mask)
 
-    result = extractor.execute(image_path.replace(".jpg",'.nrrd'), mask_path.replace(".jpg",'.nrrd'))
+    result = extractor.execute(image_path.replace(".jpg", '.nrrd'), mask_path.replace(".jpg", '.nrrd'))
 
     # 5. Lista de claves a excluir
     keys_to_exclude = [
@@ -378,10 +382,10 @@ def predecir(image_path,mask_path):
     }
     df = pd.DataFrame([filtered_data])
 
-    df=df.drop(['imagen'],axis=1)
-    df=df.drop(df.columns[:2],axis=1)
-    
-    modelos=[Categoria3, Categoria4, Categoria5, Categoria6, Categoria7, Categoria8]
+    df = df.drop(['imagen'], axis=1)
+    df = df.drop(df.columns[:2], axis=1)
+
+    modelos = [Categoria3, Categoria4, Categoria5, Categoria6, Categoria7, Categoria8]
     for i, z in zip(modelos, range(3, 9)):
         try:
             prediccion = i.predict(df.values)  # Usar .values elimina los nombres de columnas
@@ -391,8 +395,9 @@ def predecir(image_path,mask_path):
             print(f"Error: {e}")
 
 def mask_precit(image_path):
-    mask_path= predecir_mascara(image_path, model)
+    mask_path= predecir_mascara(image_path)
     predecir(image_path,mask_path)
 
 # mask_precit('./predicts/imgs/mar4.jpg')
-predecir_mascara('./predicts/imgs/mar4 copy.jpg', model)
+predecir_mascara('./predicts/imgs/mar4 copy.jpg')
+# predecir('./predicts/imgs/mar4 copy.jpg','./predicts/masks/mar4 copy.jpg')

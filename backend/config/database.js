@@ -5,11 +5,18 @@ const values = require('./const');
 
 const sequelize = new Sequelize(values.DB_NAME, values.DB_USER, values.DB_PASSWORD, {
     host: values.DB_HOST,
+    port: values.DB_PORT,
     dialect: 'mysql',
     logging: false, // true para debug
     define: {
         timestamps: false, // desactiva createdAt/updatedAt automáticos
         freezeTableName: true // evita pluralización automática
+    },
+    pool: {
+        max: values.DB_POOL_MAX,
+        min: values.DB_POOL_MIN,
+        acquire: values.DB_POOL_ACQUIRE,
+        idle: values.DB_POOL_IDLE
     }
 });
 
