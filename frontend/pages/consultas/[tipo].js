@@ -37,7 +37,7 @@ const operaciones = {
       metodo: 'POST',
       ruta: '/pacientes',
       descripcion: 'Crear paciente',
-      campos: ['sexo', 'fecha_ingreso', 'comentarios', 'user_id', 'profesional_id']
+      campos: ['sexo', 'comentarios', 'user_id', 'profesional_id']
     },
     {
       metodo: 'POST',
@@ -49,7 +49,7 @@ const operaciones = {
       metodo: 'PUT',
       ruta: '/pacientes',
       descripcion: 'Actualizar paciente',
-      campos: ['id', 'sexo', 'fecha_ingreso', 'comentarios', 'user_id', 'profesional_id']
+      campos: ['id', 'sexo', 'comentarios', 'user_id', 'profesional_id']
     },
     { metodo: 'DELETE', ruta: '/pacientes', descripcion: 'Eliminar paciente', campos: ['id'] }
   ],
@@ -81,7 +81,7 @@ const operaciones = {
       metodo: 'POST',
       ruta: '/imagenes',
       descripcion: 'Crear imagen',
-      campos: ['nombre_archivo', 'fecha_captura', 'ruta_archivo', 'paciente_id']
+      campos: ['id', 'imagen']
     },
     {
       metodo: 'POST',
@@ -101,9 +101,15 @@ const operaciones = {
     { metodo: 'GET', ruta: '/segmentaciones', descripcion: 'Listar segmentaciones' },
     {
       metodo: 'POST',
-      ruta: '/segmentaciones',
-      descripcion: 'Crear segmentacion',
-      campos: ['metodo', 'ruta_mascara', 'fecha_creacion', 'imagen_id']
+      ruta: '/segmentaciones/manual',
+      descripcion: 'Crear segmentacion manual',
+      campos: ['id', 'imagen']
+    },
+    {
+      metodo: 'POST',
+      ruta: '/segmentaciones/automatico',
+      descripcion: 'Crear segmentacion automatica',
+      campos: ['id']
     },
     {
       metodo: 'POST',
@@ -115,7 +121,7 @@ const operaciones = {
       metodo: 'PUT',
       ruta: '/segmentaciones',
       descripcion: 'Actualizar segmentacion',
-      campos: ['id', 'metodo', 'ruta_mascara', 'fecha_creacion', 'imagen_id']
+      campos: ['id', 'metodo', 'ruta_mascara', 'imagen_id']
     },
     { metodo: 'DELETE', ruta: '/segmentaciones', descripcion: 'Eliminar segmentacion', campos: ['id'] }
   ],
@@ -124,8 +130,8 @@ const operaciones = {
     {
       metodo: 'POST',
       ruta: '/pwatscore',
-      descripcion: 'Crear pwatscore',
-      campos: ['evaluador', 'categorias', 'fecha_evaluacion', 'observaciones', 'imagen_id', 'segmentacion_id']
+      descripcion: 'Predecir pwatscore',
+      campos: ['id']
     },
     {
       metodo: 'POST',
@@ -137,10 +143,10 @@ const operaciones = {
       metodo: 'PUT',
       ruta: '/pwatscore',
       descripcion: 'Actualizar pwatscore',
-      campos: ['id', 'evaluador', 'categorias', 'fecha_evaluacion', 'observaciones', 'imagen_id', 'segmentacion_id']
+      campos: ['id', 'evaluador', 'cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6', 'cat7', 'cat8', 'fecha_evaluacion', 'observaciones', 'imagen_id', 'segmentacion_id']
     },
     { metodo: 'DELETE', ruta: '/pwatscore', descripcion: 'Eliminar pwatscore', campos: ['id'] },
-    { metodo: 'GET', ruta: '/pwatscore/run-python', descripcion: 'Ejecutar script de categorizador' }
+    // La ruta para ejecutar el script se eliminó en el backend
   ]
 };
 
@@ -172,15 +178,19 @@ export default function ConsultaTipo() {
 
   const ejecutarConsulta = async (op, body = null) => {
     try {
-      const opciones = {
-        method: op.metodo,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      };
+      const opciones = { method: op.metodo, headers: {} };
 
       if (body && ['POST', 'PUT', 'DELETE'].includes(op.metodo)) {
-        opciones.body = JSON.stringify(body);
+        if (op.campos && op.campos.includes('imagen')) {
+          const formData = new FormData();
+          Object.entries(body).forEach(([k, v]) => formData.append(k, v));
+          opciones.body = formData;
+        } else {
+          opciones.headers['Content-Type'] = 'application/json';
+          opciones.body = JSON.stringify(body);
+        }
+      } else {
+        opciones.headers['Content-Type'] = 'application/json';
       }
 
       const res = await apiFetch(op.ruta, opciones);
@@ -217,6 +227,13 @@ export default function ConsultaTipo() {
                         placeholder={campo}
                         value={bodies[idx]?.[campo] || ''}
                         onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.value } })}
+                      />
+                    ) : campo === 'imagen' ? (
+                      <input
+                        key={campo}
+                        type="file"
+                        style={{ display:'block', marginBottom:'0.5rem' }}
+                        onChange={e => setBodies({ ...bodies, [idx]: { ...bodies[idx], [campo]: e.target.files[0] } })}
                       />
                     ) : (
                       <input
