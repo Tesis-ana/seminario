@@ -77,6 +77,14 @@ const predecirPwatscore = async (req, res) => {
             return res.status(201).json({
                 message: "Pwatscore creado correctamente.",
                 pwatscoreId: pwatscore.id,
+                categorias: {
+                    cat3: pwatscore.cat3,
+                    cat4: pwatscore.cat4,
+                    cat5: pwatscore.cat5,
+                    cat6: pwatscore.cat6,
+                    cat7: pwatscore.cat7,
+                    cat8: pwatscore.cat8,
+                }
             });
         });
 
