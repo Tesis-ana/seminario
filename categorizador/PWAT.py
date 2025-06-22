@@ -59,6 +59,7 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 # Visualization
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import argparse
 
 with open("./modelos/Categoria3.pkl", "rb") as f:
     Categoria3 = pickle.load(f)
@@ -399,5 +400,23 @@ def mask_precit(image_path):
     predecir(image_path,mask_path)
 
 # mask_precit('./predicts/imgs/mar4.jpg')
-predecir_mascara('./predicts/imgs/mar4 copy.jpg')
+# predecir_mascara('./predicts/imgs/mar4 copy.jpg')
 # predecir('./predicts/imgs/mar4 copy.jpg','./predicts/masks/mar4 copy.jpg')
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", required=True, choices=["mask_precit", "predecir_mascara", "predecir"])
+    parser.add_argument("--image_path", required=True)
+    parser.add_argument("--mask_path", required=False)
+    args = parser.parse_args()
+
+    if args.mode == "mask_precit":
+        mask_precit(args.image_path)
+    elif args.mode == "predecir_mascara":
+        result = predecir_mascara(args.image_path)
+        print(f"Mask saved at: {result}")
+    elif args.mode == "predecir":
+        if not args.mask_path:
+            raise ValueError("Favor de proporcionar la ruta de la máscara con --mask_path")
+        predecir(args.image_path, args.mask_path)
