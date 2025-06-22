@@ -1,5 +1,10 @@
 const db = require("../models");
 const Op = db.Sequelize.Op;
+const multer = require('multer');
+const path  = require('path');
+const fs    = require('fs');
+const storage = multer.memoryStorage();
+const upload  = multer({ storage }).single('imagen');
 
 const listarImagens = async (req, res) => {
     try {
@@ -13,52 +18,43 @@ const listarImagens = async (req, res) => {
     }
 };
 
-const subirImagen = async (req, res) => {
-    try {
-        const {id} = req.body;
+const subirImagen = (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) {
+            return res.status(400).json({ message: 'Error al subir la imagen.' });
+        }
         if (!req.file) {
-            return res.status(400).json({ message: "No se ha subido ninguna imagen." });
+            return res.status(400).json({ message: 'No se ha subido ninguna imagen.' });
         }
-        if (!id) {
-            return res.status(400).json({ message: "El id de imagen es requerido." });
-        }
-        const formatosPermitidos = ['image/jpg'];
-        if (!formatosPermitidos.includes(req.file.mimetype)) {
-            return res.status(400).json({
-                message: "Formato de imagen no permitido. Solo se aceptan archivos JPG.",
+        try {
+            if (!req.file.mimetype.startsWith('image/jpeg')) {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
+            // validar paciente
+            if (!req.body.id) {
+                return res.status(400).json({ message: 'El id del paciente es requerido.' });
+            }
+            const paciente = await db.Paciente.findByPk(req.body.id);
+            if (!paciente) {
+                return res.status(404).json({ message: 'El paciente no existe.' });
+            }
+            // guardar en FS y en BBDD
+            const filename    = `${paciente.id}_${Date.now()}.jpg`;
+            const imgDir      = path.join(__dirname, '../../categorizador/predicts/imgs');
+            if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+            const filePath    = path.join(imgDir, filename);
+            fs.writeFileSync(filePath, req.file.buffer);
+            const imagen = await db.Imagen.create({
+                nombre_archivo: filename,
+                fecha_captura:  new Date(),
+                ruta_archivo:   filePath,
+                paciente_id:    paciente.id
             });
+            return res.status(201).json({ message: 'Imagen creada correctamente.', imagen });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error al crear imagen.', error });
         }
-        const paciente = await db.Paciente.findOne({ where: { id } });
-        if (!paciente) {
-            return res.status(404).json({ message: "El paciente no existe." });
-        }
-        const foto= req.file;
-        const filename = `${paciente.id}_${Date.now()}.jpg`;
-
-        const rutaimagen= path.join(__dirname, '/categorizador/predicts/imgs');
-        if (!fs.existsSync(rutaimagen)) {
-            fs.mkdirSync(rutaimagen, { recursive: true });
-        }
-        // Guardar el archivo en la ruta especificada
-        fs.writeFileSync(path.join(rutaimagen, filename), foto.buffer);
-        const rutaArchivo = path.join(rutaimagen, filename);
-        const imagen = await db.Imagen.create({
-            nombre_archivo: filename,
-            fecha_captura: new Date(),
-            ruta_archivo: rutaArchivo,
-            paciente_id: id
-        });
-        return res.status(201).json({
-            message: "Imagen creada correctamente.",
-            imagen,
-        });
-
-    } catch (err) {
-        return res.status(500).json({
-            message: "Error al crear imagen.",
-            err,
-        });
-    }
+    });
 };
 
 const buscarImagen = async (req, res) => {

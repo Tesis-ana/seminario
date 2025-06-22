@@ -16,8 +16,21 @@ const listarPacientes = async (req, res) => {
 
 const crearPaciente = async (req, res) => {
     try {
-        const data = await db.Paciente.create(req.body);
-        return res.status(201).json(data);
+        const { sexo , comentarios = null, user_id , profesional_id = null } = req.body;
+        const fecha_ingreso = new Date();
+        const nuevoPaciente = await db.Paciente.create({
+            sexo,
+            fecha_ingreso,
+            comentarios,
+            user_id,
+            profesional_id
+        });
+        return res.status(201).json({
+            message: "Paciente creado correctamente.",
+            paciente: nuevoPaciente,
+        });
+
+
     } catch (err) {
         return res.status(500).json({
             message: "Error al crear paciente.",

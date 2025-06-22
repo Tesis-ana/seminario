@@ -9,6 +9,6 @@ router.post("/manual", controlador.crearSegmentacionManual);
 router.post("/buscar", controlador.buscarSegmentacion);
 router.put("/", controlador.actualizarSegmentacion);
 router.delete("/", controlador.eliminarSegmentacion);
-router.post("/automatico",controlador.crearSegmentacionAutomatica)
+router.post("/automatico",controlador.crearSegmentacionAutomatica);
 
 module.exports = router;

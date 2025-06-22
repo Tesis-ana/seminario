@@ -60,15 +60,24 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
+import json
 
-with open("./modelos/Categoria3.pkl", "rb") as f:
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, 'modelos')
+IMGS_DIR = os.path.join(BASE_DIR, 'predicts', 'imgs')
+MASKS_DIR = os.path.join(BASE_DIR, 'predicts', 'masks')
+
+model_path = os.path.join(MODEL_DIR ,'best_model.keras') 
+
+
+with open(os.path.join(MODEL_DIR,"Categoria3.pkl"), "rb") as f:
     Categoria3 = pickle.load(f)
-Categoria4=load("./modelos/Categoria4.joblib")
-Categoria5=load("./modelos/Categoria5.joblib")
-with open("./modelos/Categoria6.pkl", "rb") as f:
+Categoria4=load(os.path.join(MODEL_DIR,"Categoria4.joblib"))
+Categoria5=load(os.path.join(MODEL_DIR,"Categoria5.joblib"))
+with open(os.path.join(MODEL_DIR,"Categoria6.pkl"), "rb") as f:
     Categoria6 = pickle.load(f)
-Categoria7=load("./modelos/Categoria7.joblib")
-Categoria8=load("./modelos/Categoria8.joblib")
+Categoria7=load(os.path.join(MODEL_DIR,"Categoria7.joblib"))
+Categoria8=load(os.path.join(MODEL_DIR,"Categoria8.joblib"))
 
 class SpatialAttention(Layer):
     def __init__(self, kernel_size=7, filters=1, activation='sigmoid', **kwargs):
@@ -156,8 +165,6 @@ def combined_loss(y_true, y_pred):
     return focal_tversky_loss(y_true, y_pred) + tf.keras.losses.BinaryCrossentropy()(y_true, y_pred)
 
 # 3. Cargar el modelo
-model_path = './modelos/best_model.keras'
-
 # Definir el directorio de salida (modifica esta ruta según tus necesidades)
 output_dir = './predicts'
 os.makedirs(output_dir, exist_ok=True)
@@ -387,14 +394,20 @@ def predecir(image_path, mask_path):
     df = df.drop(df.columns[:2], axis=1)
 
     modelos = [Categoria3, Categoria4, Categoria5, Categoria6, Categoria7, Categoria8]
+    resultados = []
     for i, z in zip(modelos, range(3, 9)):
         try:
             prediccion = i.predict(df.values)  # Usar .values elimina los nombres de columnas
-            print(f"Categoria de PWAT {z} tiene el valor de: {prediccion}")
+            resultados.append(int(prediccion[0]))
         except Exception as e:
             print(f"Hubo un error con la categoria: {z}")
             print(f"Error: {e}")
-
+    categories = ["Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8"]
+    results_dict = {}
+    for c, r in zip(categories, resultados):
+        results_dict[c] = r[0] if hasattr(r, "__getitem__") else r
+    print(json.dumps(results_dict))
+    
 def mask_precit(image_path):
     mask_path= predecir_mascara(image_path)
     predecir(image_path,mask_path)
@@ -419,4 +432,6 @@ if __name__ == "__main__":
     elif args.mode == "predecir":
         if not args.mask_path:
             raise ValueError("Favor de proporcionar la ruta de la máscara con --mask_path")
-        predecir(args.image_path, args.mask_path)
+        if not args.image_path:
+            raise ValueError("Favor de proporcionar la ruta de la imagen con --image_path")
+        predecir(os.path.join(IMGS_DIR,args.image_path), os.path.join( MASKS_DIR,args.mask_path))

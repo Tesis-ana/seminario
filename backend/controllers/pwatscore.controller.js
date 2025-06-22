@@ -1,6 +1,8 @@
 
 const db = require("../models");
 const Op = db.Sequelize.Op;
+const path = require('path');
+const { spawn } = require('child_process');
 
 const listarPwatscores = async (req, res) => {
     try {
@@ -14,10 +16,70 @@ const listarPwatscores = async (req, res) => {
     }
 };
 
-const crearPwatscore = async (req, res) => {
+const predecirPwatscore = async (req, res) => {
     try {
-        const data = await db.PWATScore.create(req.body);
-        return res.status(201).json(data);
+        const {id} = req.body;
+        const imagen = await db.Imagen.findOne({ where: { id } });
+        if (!imagen) {
+            return res.status(404).json({ message: "La imagen no existe." });
+        }
+        const segmentacion = await db.Segmentacion.findOne({ where: { imagen_id: id } });
+        if (!segmentacion) {
+            return res.status(404).json({ message: "La segmentación no existe para esta imagen." });
+        }
+
+        const scriptPath = path.join(__dirname, '../../categorizador/PWAT.py');
+        const cmd     = 'conda';
+        const cmdArgs = [
+        'run', '-n', 'pyradiomics_env12', 'python',
+        scriptPath,
+        '--mode', 'predecir',
+        '--image_path', imagen.nombre_archivo,
+        '--mask_path', imagen.nombre_archivo
+        ];
+
+        const child = spawn(cmd, cmdArgs);
+        let output = '';
+        let errorOutput = ''
+
+        child.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+        child.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+
+        child.on('close', async (code) => {
+            if (code !== 0) {
+                return res.status(500).json({
+                    message: "Error al ejecutar el script de predicción.",
+                    error: errorOutput,
+                });
+            }
+            const resultado = JSON.parse(output);
+
+            const pwatscore = await db.PWATScore.create({
+                evaluador:"experto",
+                cat3: resultado.Cat3,
+                cat4: resultado.Cat4,
+                cat5: resultado.Cat5,
+                cat6: resultado.Cat6,
+                cat7: resultado.Cat7,
+                cat8: resultado.Cat8,
+                fecha_evaluacion: new Date(),
+                observaciones: "Evaluación realizada automáticamente.",
+                imagen_id: imagen.id,
+                segmentacion_id: segmentacion.id,
+            });
+            if (!pwatscore) {
+                return res.status(500).json({ message: "Error al crear pwatscore." });
+            }
+            return res.status(201).json({
+                message: "Pwatscore creado correctamente.",
+                pwatscoreId: pwatscore.id,
+            });
+        });
+
     } catch (err) {
         return res.status(500).json({
             message: "Error al crear pwatscore.",
@@ -76,7 +138,7 @@ const eliminarPwatscore = async (req, res) => {
 
 module.exports = {
     listarPwatscores,
-    crearPwatscore,
+    predecirPwatscore,
     buscarPwatscore,
     actualizarPwatscore,
     eliminarPwatscore

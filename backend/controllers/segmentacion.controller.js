@@ -1,9 +1,10 @@
-
-const db = require("../models");
+const db = require('../models');
 const { spawn } = require('child_process');
+const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
+const storage = multer.memoryStorage();
+const upload = multer({ storage }).single('imagen');
 const Op = db.Sequelize.Op;
 
 const listarSegmentacions = async (req, res) => {
@@ -12,7 +13,7 @@ const listarSegmentacions = async (req, res) => {
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al listar segmentacions.",
+            message: 'Error al listar segmentacions.',
             err,
         });
     }
@@ -22,17 +23,25 @@ const crearSegmentacionManual = async (req, res) => {
     try {
         const { id } = req.body;
         if (!id) {
-            return res.status(400).json({ message: "El id de imagen es requerido." });
+            return res
+                .status(400)
+                .json({ message: 'El id de imagen es requerido.' });
         }
 
-        const segmentacionExistente = await db.Segmentacion.findOne({ where: { imagen_id: id } });
+        const segmentacionExistente = await db.Segmentacion.findOne({
+            where: { imagen_id: id },
+        });
         if (segmentacionExistente) {
-            return res.status(400).json({ message: "Ya existe una segmentacion para esta imagen." });
+            return res
+                .status(400)
+                .json({
+                    message: 'Ya existe una segmentacion para esta imagen.',
+                });
         }
 
         const imagen = await db.Imagen.findOne({ where: { id } });
         if (!imagen) {
-            return res.status(404).json({ message: "La imagen no existe." });
+            return res.status(404).json({ message: 'La imagen no existe.' });
         }
 
         const foto = req.file;
@@ -40,19 +49,29 @@ const crearSegmentacionManual = async (req, res) => {
 
         if (!foto || !formatosPermitidos.includes(foto.mimetype)) {
             return res.status(400).json({
-                message: "Formato de imagen no permitido. Solo se aceptan archivos JPG.",
+                message:
+                    'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
             });
         }
         let filename;
 
-        filename = path.basename(imagen.nombre_archivo, path.extname(imagen.nombre_archivo));
-        
-        const rutaSegmentacion = path.join(__dirname, '../../categorizador/predicts/masks');
+        filename = path.basename(
+            imagen.nombre_archivo,
+            path.extname(imagen.nombre_archivo)
+        );
+
+        const rutaSegmentacion = path.join(
+            __dirname,
+            '../../categorizador/predicts/masks'
+        );
         if (!fs.existsSync(rutaSegmentacion)) {
             fs.mkdirSync(rutaSegmentacion, { recursive: true });
-        }   
+        }
         // Guardar el archivo en la ruta especificada
-        fs.writeFileSync(path.join(rutaSegmentacion, `${filename}.jpg`), foto.buffer);
+        fs.writeFileSync(
+            path.join(rutaSegmentacion, `${filename}.jpg`),
+            foto.buffer
+        );
         const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
 
         const segmentacion = await db.Segmentacion.create({
@@ -61,100 +80,155 @@ const crearSegmentacionManual = async (req, res) => {
             metodo: 'manual',
         });
         if (!segmentacion) {
-            return res.status(500).json({ message: "Error al crear segmentacion." });
+            return res
+                .status(500)
+                .json({ message: 'Error al crear segmentacion.' });
         }
         await segmentacion.save();
         res.statys(201).json({
-            message: "Segmentacion creada correctamente.",
+            message: 'Segmentacion creada correctamente.',
             segmentacionId: segmentacion.id,
         });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al crear segmentacion.",
+            message: 'Error al crear segmentacion.',
             err,
         });
     }
 };
 
 const crearSegmentacionAutomatica = async (req, res) => {
-    try {
-        const { id } = req.body;
-        if (!id) {
-            return res.status(400).json({ message: "El id de imagen es requerido." });
-        }
-        const imagen = await db.Imagen.findOne({ where: { id } });
-        if (!imagen) {
-            return res.status(404).json({ message: "La imagen no existe." });
-        }
-        const scriptPath = path.join(__dirname, '../../categorizador/PWAT.py');
-        const args=[scriptPath, "--mode", "predecir_mascara", "--image_path",imagen.ruta_archivo]
-        
-        const process = spawn('conda run -n pyradiomics_env12 python', args);
-        let output = '';
-        let errorOutput = '';
-        process.stdout.on('data', (data) => {
-            output += data.toString();
-        });
-        process.stderr.on('data', (data) => {
-            errorOutput += data.toString();
-        });
-        process.on('close', async (code) => {
-            if (code !== 0) {
-                return res.status(500).json({
-                    message: "Error al ejecutar el script de segmentacion.",
-                    error: errorOutput,
-                });
-            }
-            const filename = path.basename(imagen.nombre_archivo, path.extname(imagen.nombre_archivo));
-            const rutaSegmentacion = path.join(__dirname, '../../categorizador/predicts/masks');
-            const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
-
-            if (!fs.existsSync(rutaSegmentacion)) {
-                fs.mkdirSync(rutaSegmentacion, { recursive: true });
-            }
-            // Guardar el archivo en la ruta especificada
-            const segmentacion = await db.Segmentacion.create({
-                imagen_id: id,
-                ruta_mascara: rutaArchivo,
-                metodo: 'automatica',
-            });
-            if (!segmentacion) {
-                return res.status(500).json({ message: "Error al crear segmentacion." });
-            }
-            await segmentacion.save();
-            return res.status(201).json({
-                message: "Segmentacion automatica creada correctamente.",
-                segmentacionId: segmentacion.id,
-            });
-        });
-    } catch (error) {
-        return res.status(500).json({
-            message: "Error al crear segmentacion automatica.",
-            error,
-        });
+    const { id } = req.body;
+    if (!id) {
+        return res
+            .status(400)
+            .json({ message: 'El id de imagen es requerido.' });
     }
 
-};
+    // 1) Verificar que exista la imagen en BD
+    const imagen = await db.Imagen.findByPk(id);
+    if (!imagen) {
+        return res.status(404).json({ message: 'La imagen no existe.' });
+    }
 
+    // 2) Preparar comando y args
+    const scriptDir = path.join(__dirname, '../../categorizador');
+    const cmd       = 'conda';
+    const args      = [
+    'run', '-n', 'pyradiomics_env12',
+    'python', path.join(scriptDir,'PWAT.py'),
+    '--mode', 'predecir_mascara',
+    '--image_path', imagen.nombre_archivo
+    ];
+
+    
+    
+    // 3) Función para ejecutar el child process como promesa
+    const ejecutarScript = () =>
+        new Promise((resolve, reject) => {
+            const proc = spawn(cmd, args, { cwd: scriptDir });
+
+            let stdout = '';
+            let stderr = '';
+
+            proc.stdout.on('data', (data) => {
+                stdout += data;
+            });
+            proc.stderr.on('data', (data) => {
+                stderr += data;
+            });
+
+            proc.on('error', (err) => {
+                // Error al arrancar el proceso (p.ej. conda no en PATH)
+                reject(new Error(`Fallo al lanzar el proceso: ${err.message}`));
+            });
+
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    resolve(stdout);
+                } else {
+                    reject(
+                        new Error(
+                            `El script devolvió código ${code}: ${stderr}`
+                        )
+                    );
+                }
+            });
+        });
+
+    try {
+        // 4) Ejecutar y esperar
+        await ejecutarScript();
+
+        // 5) Construir ruta de la máscara generada
+        const baseName = path.basename(
+            imagen.nombre_archivo,
+            path.extname(imagen.nombre_archivo)
+        );
+        const rutaDirMascara = path.join(
+            __dirname,
+            '../../categorizador/predicts/masks'
+        );
+        const rutaMascaraArchivo = path.join(rutaDirMascara, `${baseName}.jpg`);
+
+        // Asegurarnos de que existe el directorio
+        if (!fs.existsSync(rutaDirMascara)) {
+            fs.mkdirSync(rutaDirMascara, { recursive: true });
+        }
+
+        // **Opcional:** podrías comprobar aquí fs.existsSync(rutaMascaraArchivo)
+        // y devolver 500 si no existe la máscara.
+
+        // 6) Guardar en la BD
+        const segmentacion = await db.Segmentacion.create({
+            imagen_id: id,
+            ruta_mascara: rutaMascaraArchivo,
+            metodo: 'automatica',
+        });
+
+        return res.status(201).json({
+            message: 'Segmentación automática creada correctamente.',
+            segmentacionId: segmentacion.id,
+        });
+    } catch (err) {
+        // Un único catch para errores de spawn o de BD
+        console.error('Error en crearSegmentacionAutomatica:', err);
+        return res.status(500).json({
+            message: 'Error al crear segmentación automática.',
+            error: err.message,
+        });
+    }
+};
 const editarSegmentacion = async (req, res) => {
     try {
         const { id } = req.body;
         if (!id) {
-            return res.status(400).json({ message: "El id de segmentacion es requerido." });
+            return res
+                .status(400)
+                .json({ message: 'El id de segmentacion es requerido.' });
         }
         const segmentacion = await db.Segmentacion.findOne({ where: { id } });
         if (!segmentacion) {
-            return res.status(404).json({ message: "La segmentacion no existe." });
+            return res
+                .status(404)
+                .json({ message: 'La segmentacion no existe.' });
         }
         const foto = req.file;
         const formatosPermitidos = ['image/jpg'];
         if (!foto || !formatosPermitidos.includes(foto.mimetype)) {
             return res.status(400).json({
-                message: "Formato de imagen no permitido. Solo se aceptan archivos JPG.",
+                message:
+                    'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
             });
         }
-        let filename = path.basename(segmentacion.ruta_mascara, path.extname(segmentacion.ruta_mascara));
-        const rutaSegmentacion = path.join(__dirname, '../../categorizador/predicts/masks');
+        let filename = path.basename(
+            segmentacion.ruta_mascara,
+            path.extname(segmentacion.ruta_mascara)
+        );
+        const rutaSegmentacion = path.join(
+            __dirname,
+            '../../categorizador/predicts/masks'
+        );
         if (!fs.existsSync(rutaSegmentacion)) {
             fs.mkdirSync(rutaSegmentacion, { recursive: true });
         }
@@ -167,29 +241,30 @@ const editarSegmentacion = async (req, res) => {
         const filePath = path.join(rutaSegmentacion, `${filename}.jpg`);
         fs.writeFileSync(filePath, foto.buffer);
         return res.status(200).json({
-            message: "Segmentacion editada correctamente.",
+            message: 'Segmentacion editada correctamente.',
             segmentacionId: segmentacion.id,
         });
-
     } catch (error) {
         return res.status(500).json({
-            message: "Error al editar segmentacion.",
+            message: 'Error al editar segmentacion.',
             error,
         });
     }
-}
+};
 
 const buscarSegmentacion = async (req, res) => {
     const { id } = req.body;
     try {
         const data = await db.Segmentacion.findOne({ where: { id } });
         if (!data) {
-            return res.status(404).json({ message: "El segmentacion no existe." });
+            return res
+                .status(404)
+                .json({ message: 'El segmentacion no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al buscar segmentacion.",
+            message: 'Error al buscar segmentacion.',
             err,
         });
     }
@@ -198,14 +273,23 @@ const buscarSegmentacion = async (req, res) => {
 const actualizarSegmentacion = async (req, res) => {
     const { id, ...resto } = req.body;
     try {
-        const [actualizados] = await db.Segmentacion.update(resto, { where: { id } });
+        const [actualizados] = await db.Segmentacion.update(resto, {
+            where: { id },
+        });
         if (actualizados === 0) {
-            return res.status(404).json({ message: "El segmentacion no fue encontrado para actualizar." });
+            return res
+                .status(404)
+                .json({
+                    message:
+                        'El segmentacion no fue encontrado para actualizar.',
+                });
         }
-        return res.status(200).json({ message: "Segmentacion actualizado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Segmentacion actualizado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al actualizar segmentacion.",
+            message: 'Error al actualizar segmentacion.',
             err,
         });
     }
@@ -216,12 +300,18 @@ const eliminarSegmentacion = async (req, res) => {
     try {
         const eliminados = await db.Segmentacion.destroy({ where: { id } });
         if (eliminados === 0) {
-            return res.status(404).json({ message: "El segmentacion no fue encontrado para eliminar." });
+            return res
+                .status(404)
+                .json({
+                    message: 'El segmentacion no fue encontrado para eliminar.',
+                });
         }
-        return res.status(200).json({ message: "Segmentacion eliminado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Segmentacion eliminado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al eliminar segmentacion.",
+            message: 'Error al eliminar segmentacion.',
             err,
         });
     }
@@ -233,5 +323,6 @@ module.exports = {
     buscarSegmentacion,
     actualizarSegmentacion,
     eliminarSegmentacion,
-    crearSegmentacionAutomatica
+    crearSegmentacionAutomatica,
+    editarSegmentacion
 };
