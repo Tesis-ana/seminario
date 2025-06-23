@@ -45,6 +45,7 @@ export default function Pwatscore() {
     setExistingMaskUrl(null);
     setChooseMask(false);
     setNewMaskPreview(null);
+
     setPwatscore(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
@@ -116,6 +117,7 @@ export default function Pwatscore() {
     setExistingMaskUrl(null);
     setNewMaskPreview(null);
     setChooseMask(false);
+
     setShowCanvas(true);
     if (canvasRef.current) {
       const canvas = canvasRef.current;
@@ -128,6 +130,7 @@ export default function Pwatscore() {
   };
 
 const generarMascaraAutomatica = async () => {
+
   if (!imagen) return;
   setLoadingMask(true);
   try {
@@ -181,6 +184,27 @@ const generarMascaraAutomatica = async () => {
       setLoadingMask(false);
     }
   };
+
+const handleAutomatico = async () => {
+  if (!imagen) return;
+  setLoadingMask(true);
+  try {
+    const res = await apiFetch('/segmentaciones/automatico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: imagen.id })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Error');
+    setSegmentacionId(json.segmentacionId);
+    setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
+    setShowCanvas(true);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoadingMask(false);
+  }
+};
 
   const startDraw = (e) => {
     setDrawing(true);
@@ -243,6 +267,7 @@ const generarMascaraAutomatica = async () => {
         const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
+
         setShowCanvas(true);
       } catch (err) {
         setError(err.message);
@@ -328,6 +353,7 @@ const generarMascaraAutomatica = async () => {
             />
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={generarMascaraAutomatica}>Generar automática</button>
+
             <button onClick={handleNuevo}>Dibujar máscara</button>
             {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
           </div>
@@ -352,6 +378,7 @@ const generarMascaraAutomatica = async () => {
           )}
           {showCanvas && (
             <div className="mt-1">
+
               <label>Color: </label>
               <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
                 <option value="#ffffff">Blanco</option>
