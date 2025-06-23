@@ -25,6 +25,7 @@ export default function Pwatscore() {
   const canvasRef = useRef(null);
   const [drawColor, setDrawColor] = useState('#ffffff');
   const [drawing, setDrawing] = useState(false);
+  const [brushSize, setBrushSize] = useState(10);
 
   useEffect(() => {
     const stored = localStorage.getItem('token');
@@ -199,7 +200,7 @@ const handleAutomatico = async () => {
     const y = e.clientY - rect.top;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = drawColor;
-    ctx.fillRect(x, y, 10, 10);
+    ctx.fillRect(x, y, brushSize, brushSize);
   };
 
   useEffect(() => {
@@ -373,6 +374,15 @@ const handleAutomatico = async () => {
                 value={maskOpacity}
                 onChange={e => setMaskOpacity(parseFloat(e.target.value))}
               />
+              <label style={{marginLeft:'1rem'}}>Tamaño:</label>
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={brushSize}
+                onChange={e => setBrushSize(parseInt(e.target.value))}
+              />
+              <span style={{marginLeft:'0.5rem'}}>{brushSize}</span>
               <button onClick={handleGuardarMascara} style={{marginLeft:'1rem'}}>Guardar máscara</button>
               <button onClick={handlePwatscore} style={{marginLeft:'0.5rem'}}>Calcular PWATScore</button>
               {loadingPwatscore && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
