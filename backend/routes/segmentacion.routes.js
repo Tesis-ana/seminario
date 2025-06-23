@@ -10,5 +10,7 @@ router.post("/buscar", controlador.buscarSegmentacion);
 router.put("/", controlador.actualizarSegmentacion);
 router.delete("/", controlador.eliminarSegmentacion);
 router.post("/automatico",controlador.crearSegmentacionAutomatica);
+router.post("/editar", controlador.editarSegmentacion);
+router.get("/:id/mask", controlador.descargarMascara);
 
 module.exports = router;
