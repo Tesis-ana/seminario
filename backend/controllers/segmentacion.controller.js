@@ -199,9 +199,13 @@ const crearSegmentacionAutomatica = async (req, res) => {
         });
     }
 };
-const editarSegmentacion = async (req, res) => {
-    try {
-        const { id } = req.body;
+const editarSegmentacion = (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) {
+            return res.status(400).json({ message: 'Error al subir la imagen.' });
+        }
+        try {
+            const { id } = req.body;
         if (!id) {
             return res
                 .status(400)
@@ -244,10 +248,27 @@ const editarSegmentacion = async (req, res) => {
             message: 'Segmentacion editada correctamente.',
             segmentacionId: segmentacion.id,
         });
-    } catch (error) {
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Error al editar segmentacion.',
+                error,
+            });
+        }
+    });
+};
+
+const descargarMascara = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const seg = await db.Segmentacion.findByPk(id);
+        if (!seg) {
+            return res.status(404).json({ message: 'Segmentación no encontrada.' });
+        }
+        return res.sendFile(path.resolve(seg.ruta_mascara));
+    } catch (err) {
         return res.status(500).json({
-            message: 'Error al editar segmentacion.',
-            error,
+            message: 'Error al obtener máscara.',
+            err,
         });
     }
 };
@@ -324,5 +345,6 @@ module.exports = {
     actualizarSegmentacion,
     eliminarSegmentacion,
     crearSegmentacionAutomatica,
-    editarSegmentacion
+    editarSegmentacion,
+    descargarMascara
 };

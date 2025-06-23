@@ -11,7 +11,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Verificar token en todas las rutas excepto login y raiz
 app.use((req, res, next) => {
-  if (req.path === '/' || req.path === '/users/login') {
+  const openPaths = ['/', '/users/login'];
+  const imagenRegex = /^\/imagenes\/\d+\/archivo$/;
+  const maskRegex = /^\/segmentaciones\/\d+\/mask$/;
+  if (
+    openPaths.includes(req.path) ||
+    (req.method === 'GET' && (imagenRegex.test(req.path) || maskRegex.test(req.path)))
+  ) {
     return next();
   }
   return verifyToken(req, res, next);
