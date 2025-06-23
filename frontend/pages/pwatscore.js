@@ -98,6 +98,7 @@ export default function Pwatscore() {
     if (!maskUrl || !canvasRef.current) return;
     const img = new Image();
     img.crossOrigin = 'anonymous';
+
     img.src = maskUrl;
     img.onload = () => {
       const canvas = canvasRef.current;
@@ -120,6 +121,7 @@ export default function Pwatscore() {
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
         setMaskUrl(`${BACKEND_URL}/segmentaciones/${segmentacionId}/mask?${Date.now()}`);
+
       } catch (err) {
         setError(err.message);
       }
@@ -184,6 +186,7 @@ export default function Pwatscore() {
               />
             )}
           </div>
+
           <div style={{marginTop:'1rem'}}>
             <input type="file" onChange={e => setMaskFile(e.target.files[0])} />
             <button onClick={handleManual}>Subir máscara</button>
@@ -200,16 +203,18 @@ export default function Pwatscore() {
               <button onClick={handlePwatscore}>Calcular PWATScore</button>
             </div>
           )}
+
         </div>
       )}
       {error && <p style={{color:'red'}}>{error}</p>}
       {pwatscore && (
         <div>
           <h2>Categorías</h2>
-          {[3,4,5,6,7,8].map(n => (
+          {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
               <label>{`Cat${n}: `}</label>
               <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
+
             </div>
           ))}
           <button onClick={handleUpdate}>Guardar</button>

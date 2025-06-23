@@ -116,6 +116,7 @@ const descargarImagen = async (req, res) => {
             ? imagen.ruta_archivo
             : path.join(__dirname, '..', imagen.ruta_archivo);
         return res.sendFile(path.resolve(filePath));
+
     } catch (err) {
         return res.status(500).json({
             message: 'Error al obtener imagen.',
