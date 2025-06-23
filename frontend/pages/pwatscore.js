@@ -97,6 +97,8 @@ export default function Pwatscore() {
   useEffect(() => {
     if (!maskUrl || !canvasRef.current) return;
     const img = new Image();
+    img.crossOrigin = 'anonymous';
+
     img.src = maskUrl;
     img.onload = () => {
       const canvas = canvasRef.current;
@@ -118,6 +120,8 @@ export default function Pwatscore() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
+        setMaskUrl(`${BACKEND_URL}/segmentaciones/${segmentacionId}/mask?${Date.now()}`);
+
       } catch (err) {
         setError(err.message);
       }
@@ -169,34 +173,37 @@ export default function Pwatscore() {
       </div>
       {imagen && (
         <div style={{marginTop:'1rem'}}>
-          <img src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`} alt="imagen" style={{maxWidth:'300px'}} />
+          <div style={{position:'relative', display:'inline-block', maxWidth:'300px'}}>
+            <img src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`} alt="imagen" style={{width:'100%'}} />
+            {maskUrl && (
+              <canvas
+                ref={canvasRef}
+                style={{position:'absolute', top:0, left:0, cursor:'crosshair'}}
+                onMouseDown={startDraw}
+                onMouseUp={endDraw}
+                onMouseMove={draw}
+                onMouseLeave={endDraw}
+              />
+            )}
+          </div>
+
           <div style={{marginTop:'1rem'}}>
             <input type="file" onChange={e => setMaskFile(e.target.files[0])} />
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={handleAutomatico}>Generar automática</button>
           </div>
-        </div>
-      )}
-      {maskUrl && (
-        <div style={{marginTop:'1rem'}}>
-          <h2>Editar máscara</h2>
-          <div>
-            <label>Color: </label>
-            <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
-              <option value="#ffffff">Blanco</option>
-              <option value="#000000">Negro</option>
-            </select>
-            <button onClick={handleGuardarMascara}>Guardar máscara</button>
-            <button onClick={handlePwatscore}>Calcular PWATScore</button>
-          </div>
-          <canvas
-            ref={canvasRef}
-            style={{border:'1px solid #000', cursor:'crosshair'}}
-            onMouseDown={startDraw}
-            onMouseUp={endDraw}
-            onMouseMove={draw}
-            onMouseLeave={endDraw}
-          />
+          {maskUrl && (
+            <div style={{marginTop:'1rem'}}>
+              <label>Color: </label>
+              <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
+                <option value="#ffffff">Blanco</option>
+                <option value="#000000">Negro</option>
+              </select>
+              <button onClick={handleGuardarMascara}>Guardar máscara</button>
+              <button onClick={handlePwatscore}>Calcular PWATScore</button>
+            </div>
+          )}
+
         </div>
       )}
       {error && <p style={{color:'red'}}>{error}</p>}

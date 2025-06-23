@@ -35,7 +35,7 @@ const predecirPwatscore = async (req, res) => {
         scriptPath,
         '--mode', 'predecir',
         '--image_path', imagen.nombre_archivo,
-        '--mask_path', imagen.nombre_archivo
+        '--mask_path', path.basename(segmentacion.ruta_mascara)
         ];
 
         const child = spawn(cmd, cmdArgs);
