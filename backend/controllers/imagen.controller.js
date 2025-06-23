@@ -112,7 +112,10 @@ const descargarImagen = async (req, res) => {
         if (!imagen) {
             return res.status(404).json({ message: 'Imagen no encontrada.' });
         }
-        return res.sendFile(path.resolve(imagen.ruta_archivo));
+        const imgDir      = path.join(__dirname, '../../categorizador/predicts/imgs');
+        const filePath    = path.join(imgDir, imagen.nombre_archivo);
+        console.log(filePath)
+        return res.sendFile(filePath);
     } catch (err) {
         return res.status(500).json({
             message: 'Error al obtener imagen.',
