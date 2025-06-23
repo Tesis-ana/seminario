@@ -19,13 +19,17 @@ const listarSegmentacions = async (req, res) => {
     }
 };
 
-const crearSegmentacionManual = async (req, res) => {
-    try {
-        const { id } = req.body;
-        if (!id) {
-            return res
-                .status(400)
-                .json({ message: 'El id de imagen es requerido.' });
+const crearSegmentacionManual = (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) {
+            return res.status(400).json({ message: 'Error al subir la imagen.' });
+        }
+        try {
+            const { id } = req.body;
+            if (!id) {
+                return res
+                    .status(400)
+                    .json({ message: 'El id de imagen es requerido.' });
         }
 
         const segmentacionExistente = await db.Segmentacion.findOne({
@@ -85,16 +89,17 @@ const crearSegmentacionManual = async (req, res) => {
                 .json({ message: 'Error al crear segmentacion.' });
         }
         await segmentacion.save();
-        res.statys(201).json({
+        return res.status(201).json({
             message: 'Segmentacion creada correctamente.',
             segmentacionId: segmentacion.id,
         });
-    } catch (err) {
-        return res.status(500).json({
-            message: 'Error al crear segmentacion.',
-            err,
-        });
-    }
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error al crear segmentacion.',
+                err,
+            });
+        }
+    });
 };
 
 const crearSegmentacionAutomatica = async (req, res) => {
