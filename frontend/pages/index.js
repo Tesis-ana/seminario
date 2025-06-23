@@ -69,6 +69,9 @@ export default function Home() {
       <p>
         <a href="/consultas">Ir a consultas</a>
       </p>
+      <p>
+        <a href="/pwatscore">Calcular PWATScore</a>
+      </p>
       <button onClick={handleLogout}>Cerrar sesi\u00f3n</button>
     </div>
   );
