@@ -70,9 +70,9 @@ export default function Pwatscore() {
       {data && (
         <div>
           <h2>Categorías</h2>
-          {[3,4,5,6,7,8].map(n => (
+          {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
-              <label>{`Cat${n}: `}</label>
+              <label>{`Categoria ${n}: `}</label>
               <input
                 type="number"
                 value={data[`cat${n}`]}
