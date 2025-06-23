@@ -9,5 +9,6 @@ router.post("/", controlador.subirImagen);
 router.post("/buscar", controlador.buscarImagen);
 router.put("/", controlador.actualizarImagen);
 router.delete("/", controlador.eliminarImagen);
+router.get('/:id/archivo', controlador.descargarImagen);
 
 module.exports = router;

@@ -105,10 +105,30 @@ const eliminarImagen = async (req, res) => {
     }
 };
 
+const descargarImagen = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const imagen = await db.Imagen.findByPk(id);
+        if (!imagen) {
+            return res.status(404).json({ message: 'Imagen no encontrada.' });
+        }
+        const filePath = path.isAbsolute(imagen.ruta_archivo)
+            ? imagen.ruta_archivo
+            : path.join(__dirname, '..', imagen.ruta_archivo);
+        return res.sendFile(path.resolve(filePath));
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener imagen.',
+            err,
+        });
+    }
+};
+
 module.exports = {
     listarImagens,
     subirImagen,
     buscarImagen,
     actualizarImagen,
-    eliminarImagen
+    eliminarImagen,
+    descargarImagen
 };
