@@ -227,7 +227,7 @@ export default function Pwatscore() {
       {pwatscore && (
         <div>
           <h2>Categorías</h2>
-          {[1,2,3,4,5,6,7,8].map(n => (
+          {[1,2, 3,4,5,6,7,8].map(n => (
             <div key={n}>
               <label>{`Cat${n}: `}</label>
               <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
