@@ -13,6 +13,13 @@ export default function Pwatscore() {
   const [pwatscore, setPwatscore] = useState(null);
   const [error, setError] = useState('');
   const [maskOpacity, setMaskOpacity] = useState(0.5);
+  const [showCanvas, setShowCanvas] = useState(false);
+  const [loadingMask, setLoadingMask] = useState(false);
+  const [loadingPwatscore, setLoadingPwatscore] = useState(false);
+  const [existingSegId, setExistingSegId] = useState(null);
+  const [existingMaskUrl, setExistingMaskUrl] = useState(null);
+  const [newMaskPreview, setNewMaskPreview] = useState(null);
+  const [chooseMask, setChooseMask] = useState(false);
 
 
   const canvasRef = useRef(null);
@@ -32,6 +39,12 @@ export default function Pwatscore() {
     setError('');
     setImagen(null);
     setMaskUrl(null);
+    setShowCanvas(false);
+    setSegmentacionId(null);
+    setExistingSegId(null);
+    setExistingMaskUrl(null);
+    setChooseMask(false);
+    setNewMaskPreview(null);
     setPwatscore(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
@@ -42,6 +55,18 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setImagen(json);
+      // obtener segmentacion existente si la hay
+      const segRes = await apiFetch('/segmentaciones');
+      const segs = await segRes.json();
+      const seg = segs.find(s => s.imagen_id === json.id);
+      if (seg) {
+        setSegmentacionId(seg.id);
+        setExistingSegId(seg.id);
+        const url = `${BACKEND_URL}/segmentaciones/${seg.id}/mask`;
+        setMaskUrl(url);
+        setExistingMaskUrl(url);
+        setShowCanvas(true);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -49,34 +74,111 @@ export default function Pwatscore() {
 
   const handleManual = async () => {
     if (!imagen || !maskFile) return;
-    const formData = new FormData();
-    formData.append('id', imagen.id);
-    formData.append('imagen', maskFile);
+    setError('');
+    setLoadingMask(true);
     try {
+      const segRes = await apiFetch('/segmentaciones');
+      const segs = await segRes.json();
+      const seg = segs.find(s => s.imagen_id === imagen.id);
+      if (seg) {
+        setExistingSegId(seg.id);
+        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${seg.id}/mask`);
+        setNewMaskPreview(URL.createObjectURL(maskFile));
+        setChooseMask(true);
+        setShowCanvas(false);
+        setLoadingMask(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('id', imagen.id);
+      formData.append('imagen', maskFile);
       const res = await apiFetch('/segmentaciones/manual', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setSegmentacionId(json.segmentacionId);
-      setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
+      const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+      setMaskUrl(url);
+      setExistingSegId(json.segmentacionId);
+      setExistingMaskUrl(url);
+      setShowCanvas(true);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoadingMask(false);
     }
   };
 
-  const handleAutomatico = async () => {
-    if (!imagen) return;
+  const handleNuevo = () => {
+    setSegmentacionId(null);
+    setMaskUrl(null);
+    setExistingSegId(null);
+    setExistingMaskUrl(null);
+    setNewMaskPreview(null);
+    setChooseMask(false);
+    setShowCanvas(true);
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, 256, 256);
+    }
+  };
+
+const handleAutomatico = async () => {
+  if (!imagen) return;
+  setLoadingMask(true);
+  try {
+    const res = await apiFetch('/segmentaciones/automatico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: imagen.id })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Error');
+    setSegmentacionId(json.segmentacionId);
+    const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+    setMaskUrl(url);
+    setExistingSegId(json.segmentacionId);
+    setExistingMaskUrl(url);
+    setShowCanvas(true);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoadingMask(false);
+  }
+};
+
+  const usarMascaraExistente = () => {
+    if (!existingSegId || !existingMaskUrl) return;
+    setSegmentacionId(existingSegId);
+    setMaskUrl(existingMaskUrl);
+    setShowCanvas(true);
+    setChooseMask(false);
+  };
+
+  const usarMascaraNueva = async () => {
+    if (!existingSegId || !maskFile) return;
+    setLoadingMask(true);
+    const formData = new FormData();
+    formData.append('id', existingSegId);
+    formData.append('imagen', maskFile);
     try {
-      const res = await apiFetch('/segmentaciones/automatico', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: imagen.id })
-      });
+      const res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
-      setSegmentacionId(json.segmentacionId);
-      setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
+      const url = `${BACKEND_URL}/segmentaciones/${existingSegId}/mask?${Date.now()}`;
+      setMaskUrl(url);
+      setExistingMaskUrl(url);
+      setSegmentacionId(existingSegId);
+      setShowCanvas(true);
+      setChooseMask(false);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoadingMask(false);
     }
   };
 
@@ -97,33 +199,51 @@ export default function Pwatscore() {
   };
 
   useEffect(() => {
-    if (!maskUrl || !canvasRef.current) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = maskUrl;
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      canvas.width = 256;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, 256, 256);
-
-    };
-  }, [maskUrl]);
+    if (!showCanvas || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    if (maskUrl) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = maskUrl;
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, 256, 256);
+      };
+    } else {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, 256, 256);
+    }
+  }, [maskUrl, showCanvas]);
 
   const handleGuardarMascara = async () => {
-    if (!segmentacionId || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     canvasRef.current.toBlob(async (blob) => {
       const formData = new FormData();
-      formData.append('id', segmentacionId);
       formData.append('imagen', new File([blob], 'mask.jpg', { type: 'image/jpg' }));
       try {
-        const res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
-        const json = await res.json();
+        let res, json, id;
+        if (segmentacionId) {
+          formData.append('id', segmentacionId);
+          res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
+          json = await res.json();
+          id = segmentacionId;
+        } else {
+          if (!imagen) return;
+          formData.append('id', imagen.id);
+          res = await apiFetch('/segmentaciones/manual', { method: 'POST', body: formData });
+          json = await res.json();
+          id = json.segmentacionId;
+          setSegmentacionId(id);
+          setExistingSegId(id);
+        }
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
-        setMaskUrl(`${BACKEND_URL}/segmentaciones/${segmentacionId}/mask?${Date.now()}`);
-
+        const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
+        setMaskUrl(url);
+        setExistingMaskUrl(url);
+        setShowCanvas(true);
       } catch (err) {
         setError(err.message);
       }
@@ -134,6 +254,7 @@ export default function Pwatscore() {
     if (!imagen) return;
     setPwatscore(null);
     setError('');
+    setLoadingPwatscore(true);
     try {
       const res = await apiFetch('/pwatscore', {
         method: 'POST',
@@ -145,6 +266,8 @@ export default function Pwatscore() {
       setPwatscore({ id: json.pwatscoreId, ...json.categorias });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoadingPwatscore(false);
     }
   };
 
@@ -167,14 +290,14 @@ export default function Pwatscore() {
   if (!token) return null;
 
   return (
-    <div>
+    <div className="container">
       <h1>Calcular PWATScore</h1>
       <div>
         <input type="text" placeholder="ID de imagen" value={imagenId} onChange={e => setImagenId(e.target.value)} />
         <button onClick={handleBuscar}>Buscar</button>
       </div>
       {imagen && (
-        <div style={{marginTop:'1rem'}}>
+        <div className="mt-1">
           <div style={{position:'relative', display:'inline-block', width:'256px', height:'256px'}}>
             <img
               src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
@@ -182,7 +305,7 @@ export default function Pwatscore() {
               width={256}
               height={256}
             />
-            {maskUrl && (
+            {showCanvas && (
               <canvas
                 ref={canvasRef}
                 style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity}}
@@ -195,13 +318,40 @@ export default function Pwatscore() {
             )}
           </div>
 
-          <div style={{marginTop:'1rem'}}>
-            <input type="file" onChange={e => setMaskFile(e.target.files[0])} />
+          <div className="mt-1">
+            <input
+              type="file"
+              onChange={e => {
+                setMaskFile(e.target.files[0]);
+                setNewMaskPreview(e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : null);
+              }}
+            />
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={handleAutomatico}>Generar automática</button>
+            <button onClick={handleNuevo}>Dibujar máscara</button>
+            {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
           </div>
-          {maskUrl && (
-            <div style={{marginTop:'1rem'}}>
+          {chooseMask && (
+            <div className="mt-1">
+              <p>Ya existe una máscara. Elija cuál conservar:</p>
+              <div style={{display:'flex', gap:'1rem'}}>
+                <div>
+                  <p>Existente</p>
+                  <img src={existingMaskUrl} alt="existente" width={128} height={128} />
+                  <button onClick={usarMascaraExistente}>Usar esta</button>
+                </div>
+                <div>
+                  <p>Nueva</p>
+                  {newMaskPreview && (
+                    <img src={newMaskPreview} alt="nueva" width={128} height={128} />
+                  )}
+                  <button onClick={usarMascaraNueva}>Usar esta</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showCanvas && (
+            <div className="mt-1">
               <label>Color: </label>
               <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
                 <option value="#ffffff">Blanco</option>
@@ -218,6 +368,7 @@ export default function Pwatscore() {
               />
               <button onClick={handleGuardarMascara} style={{marginLeft:'1rem'}}>Guardar máscara</button>
               <button onClick={handlePwatscore} style={{marginLeft:'0.5rem'}}>Calcular PWATScore</button>
+              {loadingPwatscore && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
             </div>
           )}
 
