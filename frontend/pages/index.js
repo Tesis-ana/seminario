@@ -45,7 +45,7 @@ export default function Home() {
 
   if (!token) {
     return (
-      <div>
+      <div className="container">
         <h1>Login</h1>
         <form onSubmit={handleSubmit}>
           <div>
@@ -64,7 +64,7 @@ export default function Home() {
   }
 
   return (
-    <div>
+    <div className="container">
       <h1>Bienvenido</h1>
       <p>
         <a href="/consultas">Ir a consultas</a>
