@@ -184,26 +184,7 @@ const handleAutomatico = async () => {
     }
   };
 
-const handleAutomatico = async () => {
-  if (!imagen) return;
-  setLoadingMask(true);
-  try {
-    const res = await apiFetch('/segmentaciones/automatico', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: imagen.id })
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Error');
-    setSegmentacionId(json.segmentacionId);
-    setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
-    setShowCanvas(true);
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoadingMask(false);
-  }
-};
+
 
   const startDraw = (e) => {
     setDrawing(true);
