@@ -22,7 +22,7 @@ export default function Consultas() {
   const endpoints = ['users', 'pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
 
   return (
-    <div>
+    <div className="container">
       <h1>Consultas del backend</h1>
       <ul>
         {endpoints.map((ep) => (
