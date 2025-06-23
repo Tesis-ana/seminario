@@ -206,7 +206,7 @@ export default function ConsultaTipo() {
   if (!data) return <p>Cargando...</p>;
 
   return (
-    <div>
+    <div className="container">
       <h1>{tipo}</h1>
       {operaciones[tipo] && (
         <>

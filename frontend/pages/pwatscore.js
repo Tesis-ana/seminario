@@ -209,14 +209,14 @@ const handleAutomatico = async () => {
   if (!token) return null;
 
   return (
-    <div>
+    <div className="container">
       <h1>Calcular PWATScore</h1>
       <div>
         <input type="text" placeholder="ID de imagen" value={imagenId} onChange={e => setImagenId(e.target.value)} />
         <button onClick={handleBuscar}>Buscar</button>
       </div>
       {imagen && (
-        <div style={{marginTop:'1rem'}}>
+        <div className="mt-1">
           <div style={{position:'relative', display:'inline-block', width:'256px', height:'256px'}}>
             <img
               src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
@@ -237,7 +237,7 @@ const handleAutomatico = async () => {
             )}
           </div>
 
-          <div style={{marginTop:'1rem'}}>
+          <div className="mt-1">
             <input type="file" onChange={e => setMaskFile(e.target.files[0])} />
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={handleAutomatico}>Generar automática</button>
@@ -245,7 +245,8 @@ const handleAutomatico = async () => {
             {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
           </div>
           {showCanvas && (
-            <div style={{marginTop:'1rem'}}>
+            <div className="mt-1">
+
               <label>Color: </label>
               <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
                 <option value="#ffffff">Blanco</option>
