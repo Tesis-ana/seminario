@@ -427,7 +427,7 @@ if __name__ == "__main__":
     if args.mode == "mask_precit":
         mask_precit(args.image_path)
     elif args.mode == "predecir_mascara":
-        result = predecir_mascara(args.image_path)
+        result = predecir_mascara(os.path.join(IMGS_DIR,args.image_path))
         print(f"Mask saved at: {result}")
     elif args.mode == "predecir":
         if not args.mask_path:
