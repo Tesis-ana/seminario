@@ -49,7 +49,7 @@ const crearSegmentacionManual = (req, res) => {
         }
 
         const foto = req.file;
-        const formatosPermitidos = ['image/jpg'];
+        const formatosPermitidos = ['image/jpeg', 'image/jpg'];
 
         if (!foto || !formatosPermitidos.includes(foto.mimetype)) {
             return res.status(400).json({
@@ -223,8 +223,11 @@ const editarSegmentacion = (req, res) => {
                 .json({ message: 'La segmentacion no existe.' });
         }
         const foto = req.file;
-        const formatosPermitidos = ['image/jpg'];
-        if (!foto || !formatosPermitidos.includes(foto.mimetype)) {
+        if (!foto) {
+            return res.status(400).json({ message: 'La imagen es requerida.' });
+        }
+        const formatosPermitidos = ['image/jpeg', 'image/jpg'];
+        if (!formatosPermitidos.includes(foto.mimetype)) {
             return res.status(400).json({
                 message:
                     'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
