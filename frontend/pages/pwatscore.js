@@ -12,6 +12,8 @@ export default function Pwatscore() {
   const [maskUrl, setMaskUrl] = useState(null);
   const [pwatscore, setPwatscore] = useState(null);
   const [error, setError] = useState('');
+  const [maskOpacity, setMaskOpacity] = useState(0.5);
+
 
   const canvasRef = useRef(null);
   const [drawColor, setDrawColor] = useState('#ffffff');
@@ -98,14 +100,14 @@ export default function Pwatscore() {
     if (!maskUrl || !canvasRef.current) return;
     const img = new Image();
     img.crossOrigin = 'anonymous';
-
     img.src = maskUrl;
     img.onload = () => {
       const canvas = canvasRef.current;
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = 256;
+      canvas.height = 256;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, 256, 256);
+
     };
   }, [maskUrl]);
 
@@ -173,12 +175,18 @@ export default function Pwatscore() {
       </div>
       {imagen && (
         <div style={{marginTop:'1rem'}}>
-          <div style={{position:'relative', display:'inline-block', maxWidth:'300px'}}>
-            <img src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`} alt="imagen" style={{width:'100%'}} />
+          <div style={{position:'relative', display:'inline-block', width:'256px', height:'256px'}}>
+            <img
+              src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
+              alt="imagen"
+              width={256}
+              height={256}
+            />
             {maskUrl && (
               <canvas
                 ref={canvasRef}
-                style={{position:'absolute', top:0, left:0, cursor:'crosshair'}}
+                style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity}}
+
                 onMouseDown={startDraw}
                 onMouseUp={endDraw}
                 onMouseMove={draw}
@@ -199,8 +207,17 @@ export default function Pwatscore() {
                 <option value="#ffffff">Blanco</option>
                 <option value="#000000">Negro</option>
               </select>
-              <button onClick={handleGuardarMascara}>Guardar máscara</button>
-              <button onClick={handlePwatscore}>Calcular PWATScore</button>
+              <label style={{marginLeft:'1rem'}}>Opacidad:</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={maskOpacity}
+                onChange={e => setMaskOpacity(parseFloat(e.target.value))}
+              />
+              <button onClick={handleGuardarMascara} style={{marginLeft:'1rem'}}>Guardar máscara</button>
+              <button onClick={handlePwatscore} style={{marginLeft:'0.5rem'}}>Calcular PWATScore</button>
             </div>
           )}
 
@@ -210,7 +227,7 @@ export default function Pwatscore() {
       {pwatscore && (
         <div>
           <h2>Categorías</h2>
-          {[1,2,3,4,5,6,7,8].map(n => (
+          {[1,2, 3,4,5,6,7,8].map(n => (
             <div key={n}>
               <label>{`Cat${n}: `}</label>
               <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
