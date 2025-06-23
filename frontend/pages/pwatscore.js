@@ -45,6 +45,7 @@ export default function Pwatscore() {
     setExistingMaskUrl(null);
     setChooseMask(false);
     setNewMaskPreview(null);
+
     setPwatscore(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
@@ -116,6 +117,7 @@ export default function Pwatscore() {
     setExistingMaskUrl(null);
     setNewMaskPreview(null);
     setChooseMask(false);
+
     setShowCanvas(true);
     if (canvasRef.current) {
       const canvas = canvasRef.current;
@@ -182,6 +184,27 @@ const handleAutomatico = async () => {
     }
   };
 
+const handleAutomatico = async () => {
+  if (!imagen) return;
+  setLoadingMask(true);
+  try {
+    const res = await apiFetch('/segmentaciones/automatico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: imagen.id })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Error');
+    setSegmentacionId(json.segmentacionId);
+    setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
+    setShowCanvas(true);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoadingMask(false);
+  }
+};
+
   const startDraw = (e) => {
     setDrawing(true);
     draw(e);
@@ -243,6 +266,7 @@ const handleAutomatico = async () => {
         const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
+
         setShowCanvas(true);
       } catch (err) {
         setError(err.message);
@@ -326,6 +350,7 @@ const handleAutomatico = async () => {
                 setNewMaskPreview(e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : null);
               }}
             />
+
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={handleAutomatico}>Generar automática</button>
             <button onClick={handleNuevo}>Dibujar máscara</button>
@@ -352,6 +377,7 @@ const handleAutomatico = async () => {
           )}
           {showCanvas && (
             <div className="mt-1">
+
               <label>Color: </label>
               <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
                 <option value="#ffffff">Blanco</option>
