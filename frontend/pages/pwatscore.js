@@ -246,6 +246,7 @@ const handleAutomatico = async () => {
           </div>
           {showCanvas && (
             <div className="mt-1">
+
               <label>Color: </label>
               <select value={drawColor} onChange={e => setDrawColor(e.target.value)}>
                 <option value="#ffffff">Blanco</option>
