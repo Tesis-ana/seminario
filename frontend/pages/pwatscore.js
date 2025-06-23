@@ -16,6 +16,10 @@ export default function Pwatscore() {
   const [showCanvas, setShowCanvas] = useState(false);
   const [loadingMask, setLoadingMask] = useState(false);
   const [loadingPwatscore, setLoadingPwatscore] = useState(false);
+  const [existingSegId, setExistingSegId] = useState(null);
+  const [existingMaskUrl, setExistingMaskUrl] = useState(null);
+  const [newMaskPreview, setNewMaskPreview] = useState(null);
+  const [chooseMask, setChooseMask] = useState(false);
 
 
   const canvasRef = useRef(null);
@@ -37,6 +41,11 @@ export default function Pwatscore() {
     setMaskUrl(null);
     setShowCanvas(false);
     setSegmentacionId(null);
+    setExistingSegId(null);
+    setExistingMaskUrl(null);
+    setChooseMask(false);
+    setNewMaskPreview(null);
+
     setPwatscore(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
@@ -47,6 +56,18 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setImagen(json);
+      // obtener segmentacion existente si la hay
+      const segRes = await apiFetch('/segmentaciones');
+      const segs = await segRes.json();
+      const seg = segs.find(s => s.imagen_id === json.id);
+      if (seg) {
+        setSegmentacionId(seg.id);
+        setExistingSegId(seg.id);
+        const url = `${BACKEND_URL}/segmentaciones/${seg.id}/mask`;
+        setMaskUrl(url);
+        setExistingMaskUrl(url);
+        setShowCanvas(true);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -54,24 +75,49 @@ export default function Pwatscore() {
 
   const handleManual = async () => {
     if (!imagen || !maskFile) return;
-    const formData = new FormData();
-    formData.append('id', imagen.id);
-    formData.append('imagen', maskFile);
+    setError('');
+    setLoadingMask(true);
     try {
+      const segRes = await apiFetch('/segmentaciones');
+      const segs = await segRes.json();
+      const seg = segs.find(s => s.imagen_id === imagen.id);
+      if (seg) {
+        setExistingSegId(seg.id);
+        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${seg.id}/mask`);
+        setNewMaskPreview(URL.createObjectURL(maskFile));
+        setChooseMask(true);
+        setShowCanvas(false);
+        setLoadingMask(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('id', imagen.id);
+      formData.append('imagen', maskFile);
       const res = await apiFetch('/segmentaciones/manual', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setSegmentacionId(json.segmentacionId);
-      setMaskUrl(`${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`);
+      const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+      setMaskUrl(url);
+      setExistingSegId(json.segmentacionId);
+      setExistingMaskUrl(url);
       setShowCanvas(true);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoadingMask(false);
     }
   };
 
   const handleNuevo = () => {
     setSegmentacionId(null);
     setMaskUrl(null);
+    setExistingSegId(null);
+    setExistingMaskUrl(null);
+    setNewMaskPreview(null);
+    setChooseMask(false);
+
     setShowCanvas(true);
     if (canvasRef.current) {
       const canvas = canvasRef.current;
@@ -80,6 +126,62 @@ export default function Pwatscore() {
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, 256, 256);
+    }
+  };
+
+const handleAutomatico = async () => {
+  if (!imagen) return;
+  setLoadingMask(true);
+  try {
+    const res = await apiFetch('/segmentaciones/automatico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: imagen.id })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Error');
+    setSegmentacionId(json.segmentacionId);
+    const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+    setMaskUrl(url);
+    setExistingSegId(json.segmentacionId);
+    setExistingMaskUrl(url);
+    setShowCanvas(true);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoadingMask(false);
+  }
+};
+
+  const usarMascaraExistente = () => {
+    if (!existingSegId || !existingMaskUrl) return;
+    setSegmentacionId(existingSegId);
+    setMaskUrl(existingMaskUrl);
+    setShowCanvas(true);
+    setChooseMask(false);
+  };
+
+  const usarMascaraNueva = async () => {
+    if (!existingSegId || !maskFile) return;
+    setLoadingMask(true);
+    const formData = new FormData();
+    formData.append('id', existingSegId);
+    formData.append('imagen', maskFile);
+    try {
+      const res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Error');
+      const url = `${BACKEND_URL}/segmentaciones/${existingSegId}/mask?${Date.now()}`;
+      setMaskUrl(url);
+      setExistingMaskUrl(url);
+      setSegmentacionId(existingSegId);
+      setShowCanvas(true);
+      setChooseMask(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingMask(false);
+
     }
   };
 
@@ -158,10 +260,14 @@ const handleAutomatico = async () => {
           json = await res.json();
           id = json.segmentacionId;
           setSegmentacionId(id);
+          setExistingSegId(id);
         }
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
-        setMaskUrl(`${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`);
+        const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
+        setMaskUrl(url);
+        setExistingMaskUrl(url);
+
         setShowCanvas(true);
       } catch (err) {
         setError(err.message);
@@ -238,12 +344,38 @@ const handleAutomatico = async () => {
           </div>
 
           <div className="mt-1">
-            <input type="file" onChange={e => setMaskFile(e.target.files[0])} />
+            <input
+              type="file"
+              onChange={e => {
+                setMaskFile(e.target.files[0]);
+                setNewMaskPreview(e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : null);
+              }}
+            />
+
             <button onClick={handleManual}>Subir máscara</button>
             <button onClick={handleAutomatico}>Generar automática</button>
             <button onClick={handleNuevo}>Dibujar máscara</button>
             {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
           </div>
+          {chooseMask && (
+            <div className="mt-1">
+              <p>Ya existe una máscara. Elija cuál conservar:</p>
+              <div style={{display:'flex', gap:'1rem'}}>
+                <div>
+                  <p>Existente</p>
+                  <img src={existingMaskUrl} alt="existente" width={128} height={128} />
+                  <button onClick={usarMascaraExistente}>Usar esta</button>
+                </div>
+                <div>
+                  <p>Nueva</p>
+                  {newMaskPreview && (
+                    <img src={newMaskPreview} alt="nueva" width={128} height={128} />
+                  )}
+                  <button onClick={usarMascaraNueva}>Usar esta</button>
+                </div>
+              </div>
+            </div>
+          )}
           {showCanvas && (
             <div className="mt-1">
 
