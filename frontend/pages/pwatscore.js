@@ -181,7 +181,6 @@ const handleAutomatico = async () => {
       setError(err.message);
     } finally {
       setLoadingMask(false);
-
     }
   };
 
