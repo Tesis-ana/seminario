@@ -55,7 +55,8 @@ export default function Paciente() {
             const seg = segs.find(s => s.imagen_id === img.id);
             const pwa = pwas.find(p => p.imagen_id === img.id);
             return { img, seg, pwa };
-          });
+          })
+          .sort((a, b) => new Date(b.img.fecha_captura) - new Date(a.img.fecha_captura));
         setImagenes(datos);
       } catch (err) {
         setError('Error al cargar datos');

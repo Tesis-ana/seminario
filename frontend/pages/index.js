@@ -15,10 +15,27 @@ export default function Home() {
   };
 
 
+  const redirectByRole = (tok) => {
+    try {
+      const payload = JSON.parse(atob(tok.split('.')[1]));
+      const rol = payload.rol;
+      if (rol === 'doctor' || rol === 'enfermera') {
+        router.push('/profesional');
+      } else if (rol === 'paciente') {
+        router.push('/paciente');
+      } else {
+        router.push('/consultas');
+      }
+    } catch (e) {
+      console.error('Error decoding token', e);
+    }
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('token');
     if (stored) {
       setToken(stored);
+      redirectByRole(stored);
     }
   }, []);
 
@@ -37,7 +54,7 @@ export default function Home() {
       }
       localStorage.setItem('token', data.token);
       setToken(data.token);
-      router.push('/consultas');
+      redirectByRole(data.token);
     } catch (err) {
       setError(err.message);
     }
