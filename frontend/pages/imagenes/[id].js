@@ -97,7 +97,7 @@ export default function ImagenDetalle() {
           <thead>
             <tr>
               {Array.from({ length: 8 }, (_, i) => (
-                <th key={i}>Categoria{i+1}</th>
+                <th key={i}>Categoria {i+1}</th>
               ))}
             </tr>
           </thead>

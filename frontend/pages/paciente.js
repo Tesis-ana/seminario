@@ -75,13 +75,13 @@ export default function Paciente() {
       <table>
         <thead>
           <tr>
-            <th>id</th>
-            <th>imagen</th>
-            <th>mascara</th>
+            <th>Identificador</th>
+            <th>Imagen</th>
+            <th>Mascara</th>
             {Array.from({ length: 8 }, (_, i) => (
-              <th key={i}>Categoria{i+1}</th>
+              <th key={i}>Categoria {i+1}</th>
             ))}
-            <th>fecha de captura</th>
+            <th>Fecha de captura</th>
           </tr>
         </thead>
         <tbody>
