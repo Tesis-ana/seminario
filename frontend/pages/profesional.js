@@ -9,6 +9,7 @@ export default function ProfesionalPacientes() {
   const [filtro, setFiltro] = useState('');
   const [seleccionado, setSeleccionado] = useState(null);
   const [imagenes, setImagenes] = useState([]);
+  const [ultimas, setUltimas] = useState({});
 
   const blendColors = (c1, c2, ratio) => {
     const hex = (c) => c.replace('#', '');
@@ -38,6 +39,22 @@ export default function ProfesionalPacientes() {
         const resPacs = await apiFetch(`/pacientes/profesional/${prof.id}`);
         const pacs = await resPacs.json();
         setPacientes(pacs);
+        const fechas = {};
+        await Promise.all(
+          pacs.map(async (pa) => {
+            try {
+              const r = await apiFetch(`/imagenes/paciente/${pa.id}`);
+              const imgs = await r.json();
+              if (Array.isArray(imgs) && imgs.length > 0) {
+                const ult = imgs.sort((a,b) => new Date(b.fecha_captura) - new Date(a.fecha_captura))[0];
+                fechas[pa.id] = ult.fecha_captura;
+              }
+            } catch(e) {
+              fechas[pa.id] = null;
+            }
+          })
+        );
+        setUltimas(fechas);
       } catch (err) {
         console.error(err);
       }
@@ -64,6 +81,9 @@ export default function ProfesionalPacientes() {
         })
         .sort((a,b) => new Date(b.img.fecha_captura) - new Date(a.img.fecha_captura));
       setImagenes(data);
+      if (imgs.length > 0) {
+        setUltimas({ ...ultimas, [p.id]: data[0].img.fecha_captura });
+      }
     } catch (err) {
       console.error(err);
       setImagenes([]);
@@ -83,6 +103,7 @@ export default function ProfesionalPacientes() {
         { img: json.imagen, seg: null, pwa: null },
         ...imagenes,
       ]);
+      setUltimas({ ...ultimas, [seleccionado.id]: json.imagen.fecha_captura });
       router.push(`/pwatscore?id=${json.imagen.id}`);
     }
   };
@@ -93,7 +114,17 @@ export default function ProfesionalPacientes() {
     const res = await apiFetch(`/imagenes/${imgId}/archivo`, { method: 'PUT', body: formData });
     const json = await res.json();
     if (res.ok) {
-      setImagenes(imagenes.map(item => item.img.id === imgId ? { ...item, img: json.imagen } : item));
+      setImagenes(
+        imagenes.map(item => item.img.id === imgId ? { ...item, img: json.imagen } : item)
+      );
+      const item = imagenes.find(i => i.img.id === imgId);
+      if (item) {
+        const pid = item.img.paciente_id;
+        const prev = ultimas[pid];
+        if (!prev || new Date(json.imagen.fecha_captura) > new Date(prev)) {
+          setUltimas({ ...ultimas, [pid]: json.imagen.fecha_captura });
+        }
+      }
     }
   };
 
@@ -112,6 +143,7 @@ export default function ProfesionalPacientes() {
           <tr>
             <th>RUT</th>
             <th>Nombre</th>
+            <th>Última foto</th>
           </tr>
         </thead>
         <tbody>
@@ -119,6 +151,7 @@ export default function ProfesionalPacientes() {
             <tr key={p.id} onClick={() => seleccionar(p)} style={{cursor:'pointer'}}>
               <td>{p.user?.rut}</td>
               <td>{p.user?.nombre}</td>
+              <td>{ultimas[p.id] ? new Date(ultimas[p.id]).toLocaleDateString() : ''}</td>
             </tr>
           ))}
         </tbody>
