@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
+import { CAT_INFO } from '../lib/categorias';
 
 export default function Pwatscore() {
   const router = useRouter();
@@ -36,7 +37,13 @@ export default function Pwatscore() {
     }
   }, [router]);
 
-  const handleBuscar = async () => {
+  useEffect(() => {
+    if (router.isReady && router.query.id) {
+      setImagenId(router.query.id);
+    }
+  }, [router.isReady, router.query.id]);
+
+  const handleBuscar = async (overrideId) => {
     setError('');
     setImagen(null);
     setMaskUrl(null);
@@ -52,7 +59,7 @@ export default function Pwatscore() {
       const res = await apiFetch('/imagenes/buscar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: imagenId })
+        body: JSON.stringify({ id: overrideId || imagenId })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
@@ -73,6 +80,12 @@ export default function Pwatscore() {
       setError(err.message);
     }
   };
+
+  useEffect(() => {
+    if (router.isReady && router.query.id) {
+      handleBuscar(router.query.id);
+    }
+  }, [router.isReady, router.query.id]);
 
   const handleManual = async () => {
     if (!imagen || !maskFile) return;
@@ -397,7 +410,7 @@ const handleAutomatico = async () => {
           <h2>Categorías</h2>
           {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
-              <label>{`Categoria ${n}: `}</label>
+              <label title={CAT_INFO[n]}>{`Categoria ${n}: `}</label>
               <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
 
             </div>

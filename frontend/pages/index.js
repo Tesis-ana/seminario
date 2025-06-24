@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
+import LogoutButton from '../components/LogoutButton';
 
 export default function Home() {
   const router = useRouter();
@@ -9,16 +10,27 @@ export default function Home() {
   const [contra, setContra] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-  };
 
+
+  const redirectByRole = (tok) => {
+    try {
+      const payload = JSON.parse(atob(tok.split('.')[1]));
+      const rol = payload.rol;
+      if (rol === 'doctor' || rol === 'enfermera') {
+        router.push('/profesional');
+      } else if (rol === 'paciente') {
+        router.push('/paciente');
+      } 
+    } catch (e) {
+      console.error('Error decoding token', e);
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('token');
     if (stored) {
       setToken(stored);
+      redirectByRole(stored);
     }
   }, []);
 
@@ -37,7 +49,7 @@ export default function Home() {
       }
       localStorage.setItem('token', data.token);
       setToken(data.token);
-      router.push('/consultas');
+      redirectByRole(data.token);
     } catch (err) {
       setError(err.message);
     }
@@ -75,7 +87,7 @@ export default function Home() {
       <p>
         <a href="/paciente">Mis Imágenes</a>
       </p>
-      <button onClick={handleLogout}>Cerrar sesi\u00f3n</button>
+      <LogoutButton />
     </div>
   );
 }

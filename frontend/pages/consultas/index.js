@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import LogoutButton from '../../components/LogoutButton';
 
 export default function Consultas() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function Consultas() {
           </li>
         ))}
       </ul>
+      <LogoutButton />
     </div>
   );
 }

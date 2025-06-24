@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
+import LogoutButton from '../components/LogoutButton';
+import { CAT_INFO } from '../lib/categorias';
 
 export default function Paciente() {
   const router = useRouter();
@@ -55,7 +57,8 @@ export default function Paciente() {
             const seg = segs.find(s => s.imagen_id === img.id);
             const pwa = pwas.find(p => p.imagen_id === img.id);
             return { img, seg, pwa };
-          });
+          })
+          .sort((a, b) => new Date(b.img.fecha_captura) - new Date(a.img.fecha_captura));
         setImagenes(datos);
       } catch (err) {
         setError('Error al cargar datos');
@@ -72,14 +75,14 @@ export default function Paciente() {
   return (
     <div className="container">
       <h1>Mis Imágenes</h1>
-      <table>
+      <table className="mt-1">
         <thead>
           <tr>
             <th>Identificador</th>
             <th>Imagen</th>
             <th>Mascara</th>
             {Array.from({ length: 8 }, (_, i) => (
-              <th key={i}>Categoria {i+1}</th>
+              <th key={i} title={CAT_INFO[i+1]}>Categoria {i+1}</th>
             ))}
             <th>Fecha de captura</th>
           </tr>
@@ -108,6 +111,7 @@ export default function Paciente() {
           })}
         </tbody>
       </table>
+      <LogoutButton />
     </div>
   );
 }
