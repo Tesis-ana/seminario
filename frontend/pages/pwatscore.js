@@ -37,7 +37,13 @@ export default function Pwatscore() {
     }
   }, [router]);
 
-  const handleBuscar = async () => {
+  useEffect(() => {
+    if (router.isReady && router.query.id) {
+      setImagenId(router.query.id);
+    }
+  }, [router.isReady, router.query.id]);
+
+  const handleBuscar = async (overrideId) => {
     setError('');
     setImagen(null);
     setMaskUrl(null);
@@ -53,7 +59,7 @@ export default function Pwatscore() {
       const res = await apiFetch('/imagenes/buscar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: imagenId })
+        body: JSON.stringify({ id: overrideId || imagenId })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
@@ -74,6 +80,12 @@ export default function Pwatscore() {
       setError(err.message);
     }
   };
+
+  useEffect(() => {
+    if (router.isReady && router.query.id) {
+      handleBuscar(router.query.id);
+    }
+  }, [router.isReady, router.query.id]);
 
   const handleManual = async () => {
     if (!imagen || !maskFile) return;

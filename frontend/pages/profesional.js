@@ -83,6 +83,7 @@ export default function ProfesionalPacientes() {
         { img: json.imagen, seg: null, pwa: null },
         ...imagenes,
       ]);
+      router.push(`/pwatscore?id=${json.imagen.id}`);
     }
   };
 
@@ -152,7 +153,11 @@ export default function ProfesionalPacientes() {
                 const sum = pwa ? Array.from({ length: 8 }, (_, i) => pwa[`cat${i+1}`] ?? 0).reduce((a,b) => a + b, 0) : null;
                 const color = sum !== null ? blendColors('#e6ffe6', '#ffe6e6', sum / 32) : 'transparent';
                 return (
-                  <tr key={img.id} style={{ backgroundColor: color }} onClick={() => router.push(`/imagenes/${img.id}`)}>
+                  <tr
+                    key={img.id}
+                    style={{ backgroundColor: color }}
+                    onClick={() => router.push(`/pwatscore?id=${img.id}`)}
+                  >
                     <td>{img.id}</td>
                     <td>
                       <img src={`${BACKEND_URL}/imagenes/${img.id}/archivo`} alt="img" width={64} height={64} />
