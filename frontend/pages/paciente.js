@@ -72,7 +72,7 @@ export default function Paciente() {
         </thead>
         <tbody>
           {imagenes.map(({ img, seg, pwa }) => (
-            <tr key={img.id}>
+            <tr key={img.id} onClick={() => router.push(`/imagenes/${img.id}`)} style={{cursor:'pointer'}}>
               <td>{img.id}</td>
               <td>
                 <img src={`${BACKEND_URL}/imagenes/${img.id}/archivo`} alt="img" width={64} height={64} />
