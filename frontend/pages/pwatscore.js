@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
-import LogoutButton from '../components/LogoutButton';
 
 export default function Pwatscore() {
   const router = useRouter();
@@ -418,7 +417,6 @@ const handleAutomatico = async () => {
           <button onClick={handleUpdate}>Guardar</button>
         </div>
       )}
-      <LogoutButton />
     </div>
   );
 }

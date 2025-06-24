@@ -20,9 +20,7 @@ export default function Home() {
         router.push('/profesional');
       } else if (rol === 'paciente') {
         router.push('/paciente');
-      } else {
-        router.push('/consultas');
-      }
+      } 
     } catch (e) {
       console.error('Error decoding token', e);
     }
