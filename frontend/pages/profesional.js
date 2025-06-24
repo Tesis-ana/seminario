@@ -15,15 +15,9 @@ export default function ProfesionalPacientes() {
       router.replace('/');
       return;
     }
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const rut = payload.rut;
     async function load() {
       try {
-        const resProf = await apiFetch('/profesionales/buscar-rut', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rut })
-        });
+        const resProf = await apiFetch('/profesionales/me');
         const prof = await resProf.json();
         if (!resProf.ok) throw new Error(prof.message || 'Error');
         const resPacs = await apiFetch(`/pacientes/profesional/${prof.id}`);
