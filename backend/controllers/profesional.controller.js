@@ -41,6 +41,41 @@ const buscarProfesional = async (req, res) => {
     }
 };
 
+const buscarProfesionalRut = async (req, res) => {
+    const { rut } = req.body;
+    try {
+        const data = await db.Profesional.findOne({ where: { user_id: rut } });
+        if (!data) {
+            return res.status(404).json({ message: "El profesional no existe." });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({
+            message: "Error al buscar profesional.",
+            err,
+        });
+    }
+};
+
+const obtenerProfesionalActual = async (req, res) => {
+    const rut = req.user?.rut;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT no disponible.' });
+    }
+    try {
+        const data = await db.Profesional.findOne({ where: { user_id: rut } });
+        if (!data) {
+            return res.status(404).json({ message: 'El profesional no existe.' });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al buscar profesional.',
+            err,
+        });
+    }
+};
+
 const actualizarProfesional = async (req, res) => {
     const { id, ...resto } = req.body;
     try {
@@ -77,6 +112,8 @@ module.exports = {
     listarProfesionales,
     crearProfesional,
     buscarProfesional,
+    buscarProfesionalRut,
+    obtenerProfesionalActual,
     actualizarProfesional,
     eliminarProfesional
 };
