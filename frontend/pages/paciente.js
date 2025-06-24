@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
 import LogoutButton from '../components/LogoutButton';
+import { CAT_INFO } from '../lib/categorias';
 
 export default function Paciente() {
   const router = useRouter();
@@ -81,7 +82,7 @@ export default function Paciente() {
             <th>Imagen</th>
             <th>Mascara</th>
             {Array.from({ length: 8 }, (_, i) => (
-              <th key={i}>Categoria {i+1}</th>
+              <th key={i} title={CAT_INFO[i+1]}>Categoria {i+1}</th>
             ))}
             <th>Fecha de captura</th>
           </tr>

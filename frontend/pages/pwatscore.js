@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
+import { CAT_INFO } from '../lib/categorias';
 
 export default function Pwatscore() {
   const router = useRouter();
@@ -409,7 +410,7 @@ const handleAutomatico = async () => {
           <h2>Categorías</h2>
           {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
-              <label>{`Categoria ${n}: `}</label>
+              <label title={CAT_INFO[n]}>{`Categoria ${n}: `}</label>
               <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
 
             </div>

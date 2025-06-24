@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { apiFetch, BACKEND_URL } from '../../lib/api';
+import { CAT_INFO } from '../../lib/categorias';
 
 export default function ImagenDetalle() {
   const router = useRouter();
@@ -97,7 +98,7 @@ export default function ImagenDetalle() {
           <thead>
             <tr>
               {Array.from({ length: 8 }, (_, i) => (
-                <th key={i}>Categoria {i+1}</th>
+                <th key={i} title={CAT_INFO[i+1]}>Categoria {i+1}</th>
               ))}
             </tr>
           </thead>
