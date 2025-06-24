@@ -18,6 +18,19 @@ const listarImagens = async (req, res) => {
     }
 };
 
+const listarImagenesPaciente = async (req, res) => {
+    const { pacienteId } = req.params;
+    try {
+        const data = await db.Imagen.findAll({ where: { paciente_id: pacienteId } });
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al listar imagens.',
+            err,
+        });
+    }
+};
+
 const subirImagen = (req, res) => {
     upload(req, res, async function (err) {
         if (err) {
@@ -89,6 +102,42 @@ const actualizarImagen = async (req, res) => {
     }
 };
 
+const actualizarImagenArchivo = (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) {
+            return res.status(400).json({ message: 'Error al subir la imagen.' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'No se ha subido ninguna imagen.' });
+        }
+        try {
+            const { id } = req.params;
+            const imagen = await db.Imagen.findByPk(id);
+            if (!imagen) {
+                return res.status(404).json({ message: 'Imagen no encontrada.' });
+            }
+            if (fs.existsSync(imagen.ruta_archivo)) {
+                fs.unlinkSync(imagen.ruta_archivo);
+            }
+            if (!req.file.mimetype.startsWith('image/jpeg')) {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
+            const filename = `${imagen.paciente_id}_${Date.now()}.jpg`;
+            const imgDir = path.join(__dirname, '../../categorizador/predicts/imgs');
+            if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+            const filePath = path.join(imgDir, filename);
+            fs.writeFileSync(filePath, req.file.buffer);
+            imagen.nombre_archivo = filename;
+            imagen.ruta_archivo = filePath;
+            imagen.fecha_captura = new Date();
+            await imagen.save();
+            return res.status(200).json({ message: 'Imagen actualizada correctamente.', imagen });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error al actualizar imagen.', error });
+        }
+    });
+};
+
 const eliminarImagen = async (req, res) => {
     const { id } = req.body;
     try {
@@ -129,6 +178,8 @@ module.exports = {
     subirImagen,
     buscarImagen,
     actualizarImagen,
+    actualizarImagenArchivo,
     eliminarImagen,
-    descargarImagen
+    descargarImagen,
+    listarImagenesPaciente
 };

@@ -55,6 +55,41 @@ const buscarPaciente = async (req, res) => {
     }
 };
 
+const buscarPacienteRut = async (req, res) => {
+    const { rut } = req.body;
+    try {
+        const data = await db.Paciente.findOne({
+            where: { user_id: rut },
+            include: db.User
+        });
+        if (!data) {
+            return res.status(404).json({ message: "El paciente no existe." });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({
+            message: "Error al buscar paciente.",
+            err,
+        });
+    }
+};
+
+const listarPacientesProfesional = async (req, res) => {
+    const { profesionalId } = req.params;
+    try {
+        const data = await db.Paciente.findAll({
+            where: { profesional_id: profesionalId },
+            include: db.User
+        });
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({
+            message: "Error al listar pacientes.",
+            err,
+        });
+    }
+};
+
 const actualizarPaciente = async (req, res) => {
     const { id, ...resto } = req.body;
     try {
@@ -91,6 +126,8 @@ module.exports = {
     listarPacientes,
     crearPaciente,
     buscarPaciente,
+    buscarPacienteRut,
+    listarPacientesProfesional,
     actualizarPaciente,
     eliminarPaciente
 };
