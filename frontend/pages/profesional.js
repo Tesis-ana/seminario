@@ -71,7 +71,7 @@ export default function ProfesionalPacientes() {
       <div className="mt-1">
         <input type="text" placeholder="Buscar por RUT" value={filtro} onChange={e => setFiltro(e.target.value)} />
       </div>
-      <table className="mt-1" border="1" cellPadding="5">
+      <table className="mt-1">
         <thead>
           <tr>
             <th>RUT</th>

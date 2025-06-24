@@ -94,7 +94,7 @@ export default function ImagenDetalle() {
         ) : null}
       </div>
       {pwa && (
-        <table>
+        <table className="mt-1">
           <thead>
             <tr>
               {Array.from({ length: 8 }, (_, i) => (

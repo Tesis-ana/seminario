@@ -74,7 +74,7 @@ export default function Paciente() {
   return (
     <div className="container">
       <h1>Mis Imágenes</h1>
-      <table>
+      <table className="mt-1">
         <thead>
           <tr>
             <th>Identificador</th>
