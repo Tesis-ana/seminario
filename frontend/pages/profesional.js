@@ -143,7 +143,7 @@ export default function ProfesionalPacientes() {
           <tr>
             <th>RUT</th>
             <th>Nombre</th>
-            <th>Última foto</th>
+            <th>Última Control Fotografico</th>
           </tr>
         </thead>
         <tbody>
