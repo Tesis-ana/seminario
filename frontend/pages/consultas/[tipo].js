@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { BACKEND_URL, apiFetch } from '../../lib/api';
+import LogoutButton from '../../components/LogoutButton';
 
 const operaciones = {
   users: [
@@ -254,6 +255,7 @@ export default function ConsultaTipo() {
         </>
       )}
       <pre>{JSON.stringify(data, null, 2)}</pre>
+      <LogoutButton />
     </div>
   );
 }

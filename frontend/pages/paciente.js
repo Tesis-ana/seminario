@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
+import LogoutButton from '../components/LogoutButton';
 
 export default function Paciente() {
   const router = useRouter();
@@ -109,6 +110,7 @@ export default function Paciente() {
           })}
         </tbody>
       </table>
+      <LogoutButton />
     </div>
   );
 }

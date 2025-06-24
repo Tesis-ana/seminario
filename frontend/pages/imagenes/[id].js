@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { apiFetch, BACKEND_URL } from '../../lib/api';
+import LogoutButton from '../../components/LogoutButton';
 
 export default function ImagenDetalle() {
   const router = useRouter();
@@ -122,6 +123,7 @@ export default function ImagenDetalle() {
       <p>
         <button onClick={() => router.back()}>Volver</button>
       </p>
+      <LogoutButton />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
+import LogoutButton from '../components/LogoutButton';
 
 export default function Home() {
   const router = useRouter();
@@ -9,10 +10,6 @@ export default function Home() {
   const [contra, setContra] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-  };
 
 
   const redirectByRole = (tok) => {
@@ -92,7 +89,7 @@ export default function Home() {
       <p>
         <a href="/paciente">Mis Imágenes</a>
       </p>
-      <button onClick={handleLogout}>Cerrar sesi\u00f3n</button>
+      <LogoutButton />
     </div>
   );
 }
