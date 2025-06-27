@@ -18,9 +18,13 @@ export default function Home() {
       const rol = payload.rol;
       if (rol === 'doctor' || rol === 'enfermera') {
         router.push('/profesional');
+      } else if (rol === 'admin') {
+        router.push('/admin');
+      } else if (rol === 'investigador') {
+        router.push('/investigador');
       } else if (rol === 'paciente') {
-        router.push('/paciente');
-      } 
+        router.push('/usuario');
+      }
     } catch (e) {
       console.error('Error decoding token', e);
     }
@@ -85,7 +89,7 @@ export default function Home() {
         <a href="/pwatscore">Calcular PWATScore</a>
       </p>
       <p>
-        <a href="/paciente">Mis Imágenes</a>
+        <a href="/usuario">Mi Perfil</a>
       </p>
       <LogoutButton />
     </div>
