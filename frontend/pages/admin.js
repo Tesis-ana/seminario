@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { apiFetch } from '../lib/api';
 import LogoutButton from '../components/LogoutButton';
 
 export default function Admin() {
@@ -21,80 +20,24 @@ export default function Admin() {
 
   if (!token) return null;
 
-  const handleCreateUser = async (e) => {
+  const handleCreateUser = (e) => {
     e.preventDefault();
-    try {
-      const res = await apiFetch('/users/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error');
-      setMsg('Usuario creado');
-    } catch (err) {
-      setMsg('Error al crear');
-    }
+    setMsg('Usuario creado (simulado)');
   };
 
-  const handleDeleteUser = async (e) => {
+  const handleDeleteUser = (e) => {
     e.preventDefault();
-    try {
-      const res = await apiFetch('/users', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: delRut })
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error');
-      setMsg('Usuario eliminado');
-    } catch (err) {
-      setMsg('Error al eliminar');
-    }
+    setMsg('Usuario eliminado (simulado)');
   };
 
-  const handleCreateProf = async (e) => {
+  const handleCreateProf = (e) => {
     e.preventDefault();
-    try {
-      const res = await apiFetch('/profesionales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          especialidad: prof.especialidad,
-          user_id: prof.user_rut,
-          fecha_ingreso: prof.fecha_ingreso
-        })
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error');
-      setMsg('Profesional creado');
-    } catch (err) {
-      setMsg('Error al crear profesional');
-    }
+    setMsg('Profesional creado (simulado)');
   };
 
-  const handleAssign = async (e) => {
+  const handleAssign = (e) => {
     e.preventDefault();
-    try {
-      const pac = await apiFetch('/pacientes/buscar-rut', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rut: asig.paciente_rut })
-      });
-      const pacJson = await pac.json();
-      if (!pac.ok) throw new Error('Paciente no encontrado');
-
-      const res = await apiFetch('/pacientes', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: pacJson.id, profesional_id: asig.profesional_id })
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error');
-      setMsg('Paciente asignado');
-    } catch (err) {
-      setMsg('Error al asignar');
-    }
+    setMsg('Paciente asignado (simulado)');
   };
 
   return (
