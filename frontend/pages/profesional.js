@@ -134,8 +134,8 @@ export default function ProfesionalPacientes() {
   );
 
   return (
-    <div className="container">
-      <h1>Mis Pacientes</h1>
+    <div className="container fantasy">
+      <h1>🩺 Mis Pacientes</h1>
       <div className="mt-1">
         <input type="text" placeholder="Buscar por RUT" value={filtro} onChange={e => setFiltro(e.target.value)} />
       </div>
@@ -167,19 +167,20 @@ export default function ProfesionalPacientes() {
           <p><strong>Comentarios:</strong> {seleccionado.comentarios}</p>
 
           <div className="mt-1">
+            <label>📤 Nueva imagen:</label>
             <input type="file" onChange={subirImagen} />
           </div>
           <table className="mt-1">
             <thead>
               <tr>
                 <th>Identificador</th>
-                <th>Imagen</th>
-                <th>Mascara</th>
+                <th>🖼️ Imagen</th>
+                <th>🎭 Máscara</th>
                 {Array.from({ length: 8 }, (_, i) => (
                   <th key={i} title={CAT_INFO[i+1]}>Categoria {i+1}</th>
                 ))}
                 <th>Fecha de captura</th>
-                <th>Reemplazar</th>
+                <th>🔄 Reemplazar</th>
               </tr>
             </thead>
             <tbody>
@@ -206,6 +207,7 @@ export default function ProfesionalPacientes() {
                     ))}
                     <td>{new Date(img.fecha_captura).toLocaleDateString()}</td>
                     <td>
+                      <label>🔄</label>
                       <input type="file" onChange={e => reemplazarImagen(img.id, e.target.files[0])} />
                     </td>
                   </tr>

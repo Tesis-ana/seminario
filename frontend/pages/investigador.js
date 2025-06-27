@@ -26,11 +26,11 @@ export default function Investigador() {
   };
 
   return (
-    <div className="container">
-      <h1>Panel Investigador</h1>
-      <button onClick={cargarMetrics}>Ver métricas</button>
-      <button onClick={reentrenar} style={{marginLeft:'0.5rem'}}>Reentrenar</button>
-      {msg && <p>{msg}</p>}
+    <div className="container fantasy">
+      <h1>🔬 Panel Investigador</h1>
+      <button onClick={cargarMetrics}>📊 Ver métricas</button>
+      <button onClick={reentrenar} style={{marginLeft:'0.5rem'}}>⚙️ Reentrenar</button>
+      {msg && <p className="mt-1">{msg}</p>}
       {metrics && (<pre>{JSON.stringify(metrics, null, 2)}</pre>)}
       <LogoutButton />
     </div>

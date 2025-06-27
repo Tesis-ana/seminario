@@ -27,8 +27,8 @@ export default function Usuario() {
   };
 
   return (
-    <div className="container">
-      <h1>Mi Perfil</h1>
+    <div className="container fantasy">
+      <h1>🌟 Mi Perfil</h1>
       {user && (
         <div className="mt-1">
           <label>Nombre:</label>
@@ -38,8 +38,8 @@ export default function Usuario() {
           <button onClick={guardar}>Guardar</button>
         </div>
       )}
-      {msg && <p>{msg}</p>}
-      <h2 className="mt-1">Mis Revisiones</h2>
+      {msg && <p className="mt-1">{msg}</p>}
+      <h2 className="mt-1">🖼️ Mis Revisiones</h2>
       <table className="mt-1">
         <thead>
           <tr>

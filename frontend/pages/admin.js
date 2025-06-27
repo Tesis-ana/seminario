@@ -41,10 +41,10 @@ export default function Admin() {
   };
 
   return (
-    <div className="container">
-      <h1>Panel Administrador</h1>
+    <div className="container fantasy">
+      <h1>👑 Panel Administrador</h1>
       <form onSubmit={handleCreateUser} className="mt-1">
-        <h2>Crear Usuario</h2>
+        <h2>✏️ Crear Usuario</h2>
         <input placeholder="RUT" value={newUser.rut} onChange={e=>setNewUser({ ...newUser, rut:e.target.value })} />
         <input placeholder="Nombre" value={newUser.nombre} onChange={e=>setNewUser({ ...newUser, nombre:e.target.value })} />
         <input placeholder="Correo" value={newUser.correo} onChange={e=>setNewUser({ ...newUser, correo:e.target.value })} />
@@ -60,13 +60,13 @@ export default function Admin() {
       </form>
 
       <form onSubmit={handleDeleteUser} className="mt-1">
-        <h2>Eliminar Usuario</h2>
+        <h2>🗑️ Eliminar Usuario</h2>
         <input placeholder="RUT" value={delRut} onChange={e=>setDelRut(e.target.value)} />
         <button type="submit">Eliminar</button>
       </form>
 
       <form onSubmit={handleCreateProf} className="mt-1">
-        <h2>Crear Profesional</h2>
+        <h2>🩺 Crear Profesional</h2>
         <input placeholder="RUT usuario" value={prof.user_rut} onChange={e=>setProf({ ...prof, user_rut:e.target.value })} />
         <input placeholder="Especialidad" value={prof.especialidad} onChange={e=>setProf({ ...prof, especialidad:e.target.value })} />
         <input placeholder="Fecha ingreso" value={prof.fecha_ingreso} onChange={e=>setProf({ ...prof, fecha_ingreso:e.target.value })} />
@@ -74,13 +74,13 @@ export default function Admin() {
       </form>
 
       <form onSubmit={handleAssign} className="mt-1">
-        <h2>Asignar Paciente a Profesional</h2>
+        <h2>🔗 Asignar Paciente a Profesional</h2>
         <input placeholder="RUT paciente" value={asig.paciente_rut} onChange={e=>setAsig({ ...asig, paciente_rut:e.target.value })} />
         <input placeholder="ID profesional" value={asig.profesional_id} onChange={e=>setAsig({ ...asig, profesional_id:e.target.value })} />
         <button type="submit">Asignar</button>
       </form>
 
-      {msg && <p>{msg}</p>}
+      {msg && <p className="mt-1">{msg}</p>}
       <LogoutButton />
     </div>
   );
