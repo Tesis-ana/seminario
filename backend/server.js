@@ -33,7 +33,7 @@ async function connectToDatabase() {
       await db.sequelize.authenticate();
       
       // Sincronizar modelos después de conectar
-      await db.sequelize.sync({ sync: true });
+await db.sequelize.sync({ alter: true });
       console.log("🗄️ Actualización de base de datos lista.");
       return;
     } catch (error) {
