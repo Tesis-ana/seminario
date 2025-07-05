@@ -1,0 +1,29 @@
+\usetikzlibrary{arrows,positioning}
+\section{Definición del Problema}
+\subsection{Problema}
+\label{ssec:P}
+
+La evaluación clínica actual del pie diabético está predominantemente basada en criterios visuales subjetivos, lo que genera importantes inconsistencias diagnósticas y retrasa la implementación de intervenciones clínicas oportunas y efectivas. Diversas investigaciones han señalado que esta subjetividad genera una significativa variabilidad inter e intraoperador, afectando negativamente el pronóstico y evolución clínica de los pacientes \cite{mishra2017diabetic, bandyk2018diabetic, thompson2013reliability}. Aunque existen herramientas como el Photographic Wound Assessment Tool (PWAT), diseñadas para reducir dicha subjetividad y mejorar la precisión diagnóstica mediante la evaluación de imágenes, aún persisten limitaciones en términos de implementación práctica, objetividad plena y automatización del proceso \cite{thompson2013reliability, organizacion2016informe}.
+
+Recientemente, se han desarrollado diversos enfoques automatizados basados en inteligencia artificial y técnicas avanzadas de procesamiento de imágenes para mejorar la precisión y objetividad de estas evaluaciones. Sin embargo, muchas de estas propuestas todavía enfrentan dificultades relacionadas con la estandarización del proceso, la integración efectiva de información clínica adicional y la necesidad de dispositivos específicos o condiciones altamente controladas para la captura de imágenes \cite{van2017computational}. Un ejemplo relevante es el trabajo reciente de Curti \cite{Curti2024}, quienes presentaron una propuesta automatizada para la predicción del puntaje PWAT utilizando imágenes capturadas con smartphones y técnicas avanzadas de análisis radiómico y aprendizaje automático, logrando una alta correlación con las evaluaciones clínicas manuales \cite{Curti2024}. A pesar de este avance, se evidencian limitaciones como la dependencia de un conjunto limitado y monocéntrico de imágenes, la ausencia de condiciones estandarizadas de captura y la dificultad para una integración clínica directa y sencilla.
+
+\subsection{Solución Propuesta}
+\label{ssec:SP}
+
+Considerando los hallazgos de la literatura y las limitaciones existentes, la solución propuesta en este trabajo se enfoca en desarrollar una herramienta automatizada robusta que supere dichas restricciones. Para esto, se integrará un modelo avanzado de segmentación automática de heridas ya desarrollado, capaz de identificar y delimitar con precisión el área de las lesiones y las zonas circundantes (peri‑lesión). Estas segmentaciones serán la base para extraer características radiómicas altamente informativas mediante técnicas especializadas como pyradiomics. Dichas características incluyen parámetros relacionados con la textura, morfología, color y variabilidad de la herida, elementos que tradicionalmente los clínicos evalúan de forma visual y subjetiva.
+
+Posteriormente, se aplicarán técnicas avanzadas de aprendizaje automático (machine learning), con el fin de obtener estimaciones precisas y objetivas del puntaje PWAT. Se contemplarán diferentes algoritmos predictivos, con el propósito de seleccionar la aproximación más efectiva. Además, se integrará información clínica relevante proveniente de registros digitales del paciente, tales como datos demográficos, historial clínico, parámetros de laboratorio y otras variables asociadas a la condición clínica del individuo. La integración de estos datos adicionales permitirá mejorar considerablemente la precisión diagnóstica y asegurar una evaluación integral del paciente, facilitando así la toma de decisiones clínicas oportunas y fundamentadas en evidencia.
+
+Finalmente, esta herramienta se implementará en una interfaz de usuario amigable, diseñada para ser fácilmente adoptada en la práctica clínica cotidiana, minimizando las barreras tecnológicas y asegurando una aplicabilidad clínica directa y efectiva.
+
+\subsection{Importancia del trabajo}
+\label{ssec:IT}
+
+Desde un punto de vista científico y social, el presente trabajo es altamente relevante. Científicamente, este proyecto ofrece una significativa contribución en la integración y aplicación práctica de métodos avanzados como machine learning, análisis radiómico y procesamiento automático de imágenes en el ámbito clínico, especialmente en el manejo de heridas crónicas asociadas a diabetes. La aplicación efectiva de estas técnicas permitirá establecer una metodología de evaluación de heridas mucho más precisa y reproducible, lo cual representa un avance significativo frente a las técnicas tradicionales.
+
+Desde la perspectiva social, la importancia radica en su potencial para mejorar considerablemente la calidad de vida de los pacientes con pie diabético, reduciendo el riesgo de complicaciones graves como infecciones recurrentes y amputaciones, que impactan profundamente en la autonomía y bienestar de los afectados. Además, al optimizar la precisión diagnóstica y promover intervenciones clínicas oportunas, esta herramienta podría reducir los costos sanitarios derivados de tratamientos prolongados y hospitalizaciones recurrentes, facilitando una gestión más eficiente de los recursos del sistema de salud. En suma, el desarrollo e implementación de esta propuesta contribuirá significativamente a un manejo clínico más eficaz, centrado en el paciente y basado en evidencia científica robusta, con beneficios directos para individuos, comunidades y sistemas sanitarios en general.
+
+
+
+
+
