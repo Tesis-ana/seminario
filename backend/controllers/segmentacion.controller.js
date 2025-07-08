@@ -35,13 +35,6 @@ const crearSegmentacionManual = (req, res) => {
         const segmentacionExistente = await db.Segmentacion.findOne({
             where: { imagen_id: id },
         });
-        if (segmentacionExistente) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Ya existe una segmentacion para esta imagen.',
-                });
-        }
 
         const imagen = await db.Imagen.findOne({ where: { id } });
         if (!imagen) {
@@ -78,20 +71,29 @@ const crearSegmentacionManual = (req, res) => {
         );
         const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
 
-        const segmentacion = await db.Segmentacion.create({
-            imagen_id: id,
-            ruta_mascara: rutaArchivo,
-            metodo: 'manual',
-        });
-        if (!segmentacion) {
-            return res
-                .status(500)
-                .json({ message: 'Error al crear segmentacion.' });
+        let segmentacion;
+        let statusCode;
+        if (segmentacionExistente) {
+            segmentacionExistente.ruta_mascara = rutaArchivo;
+            segmentacionExistente.metodo = 'manual';
+            await segmentacionExistente.save();
+            segmentacion = segmentacionExistente;
+            statusCode = 200;
+        } else {
+            segmentacion = await db.Segmentacion.create({
+                imagen_id: id,
+                ruta_mascara: rutaArchivo,
+                metodo: 'manual',
+            });
+            await segmentacion.save();
+            statusCode = 201;
         }
-        await segmentacion.save();
-        return res.status(201).json({
-            message: 'Segmentacion creada correctamente.',
-            segmentacionId: segmentacion.id,
+
+        return res.status(statusCode).json({
+            message: segmentacionExistente
+                ? 'Segmentacion actualizada correctamente.'
+                : 'Segmentacion creada correctamente.',
+            segmentacionId: segmentacion.imagen_id,
         });
         } catch (err) {
             return res.status(500).json({
@@ -184,15 +186,30 @@ const crearSegmentacionAutomatica = async (req, res) => {
         // **Opcional:** podrías comprobar aquí fs.existsSync(rutaMascaraArchivo)
         // y devolver 500 si no existe la máscara.
 
-        // 6) Guardar en la BD
-        const segmentacion = await db.Segmentacion.create({
-            imagen_id: id,
-            ruta_mascara: rutaMascaraArchivo,
-            metodo: 'automatica',
-        });
+        // 6) Guardar en la BD (actualizar si ya existe)
+        const existente = await db.Segmentacion.findOne({ where: { imagen_id: id } });
+        let segmentacion;
+        let statusCode;
+        if (existente) {
+            existente.ruta_mascara = rutaMascaraArchivo;
+            existente.metodo = 'automatica';
+            await existente.save();
+            segmentacion = existente;
+            statusCode = 200;
+        } else {
+            segmentacion = await db.Segmentacion.create({
+                imagen_id: id,
+                ruta_mascara: rutaMascaraArchivo,
+                metodo: 'automatica',
+            });
+            await segmentacion.save();
+            statusCode = 201;
+        }
 
-        return res.status(201).json({
-            message: 'Segmentación automática creada correctamente.',
+        return res.status(statusCode).json({
+            message: existente
+                ? 'Segmentación automática actualizada correctamente.'
+                : 'Segmentación automática creada correctamente.',
             segmentacionId: segmentacion.imagen_id,
         });
     } catch (err) {
