@@ -9,6 +9,7 @@ router.post("/", controlador.crearPaciente);
 router.post("/buscar", controlador.buscarPaciente);
 router.post("/buscar-rut", controlador.buscarPacienteRut);
 router.get("/profesional/:profesionalId", controlador.listarPacientesProfesional);
+router.get("/:id/profesional", controlador.obtenerProfesionalPaciente);
 router.put("/", controlador.actualizarPaciente);
 router.delete("/", controlador.eliminarPaciente);
 

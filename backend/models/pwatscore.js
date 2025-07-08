@@ -20,14 +20,7 @@ const PWATScore = sequelize.define('pwatscore', {
             model: 'imagen', // Nombre de la tabla referenciada
             key: 'id' // Clave primaria de la tabla referenciada
         }
-    },
-    segmentacion_id: {
-        type: DataTypes.INTEGER,
-        references: {
-            model: 'segmentacion', // Nombre de la tabla referenciada
-            key: 'imagen_id' // Clave primaria de la tabla referenciada
-        }
-    },
+    }
 });
 
 module.exports = PWATScore;

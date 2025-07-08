@@ -44,27 +44,15 @@ export default function ImagenDetalle() {
         });
         const paciente = await pacRes.json();
         let prof = null;
-        if (pacRes.ok && paciente.profesional_id) {
-          const profRes = await apiFetch('/profesionales/buscar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: paciente.profesional_id })
-          });
-          const profesional = await profRes.json();
+        if (pacRes.ok) {
+          const profRes = await apiFetch(`/pacientes/${img.paciente_id}/profesional`);
           if (profRes.ok) {
-            const userRes = await apiFetch('/users/buscar', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: profesional.user_id })
-            });
-            const user = await userRes.json();
-            if (userRes.ok) {
-              prof = {
-                especialidad: profesional.especialidad,
-                nombre: user.nombre,
-                correo: user.correo
-              };
-            }
+            const profesional = await profRes.json();
+            prof = {
+              especialidad: profesional.especialidad,
+              nombre: profesional.user?.nombre,
+              correo: profesional.user?.correo
+            };
           }
         }
 

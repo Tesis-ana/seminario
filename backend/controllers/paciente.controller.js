@@ -22,9 +22,17 @@ const crearPaciente = async (req, res) => {
             sexo,
             fecha_ingreso,
             comentarios,
-            user_id,
-            profesional_id
+            user_id
         });
+
+        if (profesional_id) {
+            await db.Atencion.create({
+                paciente_id: nuevoPaciente.id,
+                profesional_id,
+                fecha_atencion: new Date()
+            });
+        }
+
         return res.status(201).json({
             message: "Paciente creado correctamente.",
             paciente: nuevoPaciente,
@@ -77,11 +85,19 @@ const buscarPacienteRut = async (req, res) => {
 const listarPacientesProfesional = async (req, res) => {
     const { profesionalId } = req.params;
     try {
-        const data = await db.Paciente.findAll({
+        const atenciones = await db.Atencion.findAll({
             where: { profesional_id: profesionalId },
-            include: db.User
+            include: { model: db.Paciente, include: db.User }
         });
-        return res.status(200).json(data);
+        const pacientes = [];
+        const seen = new Set();
+        for (const at of atenciones) {
+            if (at.paciente && !seen.has(at.paciente.id)) {
+                pacientes.push(at.paciente);
+                seen.add(at.paciente.id);
+            }
+        }
+        return res.status(200).json(pacientes);
     } catch (err) {
         return res.status(500).json({
             message: "Error al listar pacientes.",
@@ -91,8 +107,16 @@ const listarPacientesProfesional = async (req, res) => {
 };
 
 const actualizarPaciente = async (req, res) => {
-    const { id, ...resto } = req.body;
+    const { id, profesional_id = null, ...resto } = req.body;
     try {
+        if (profesional_id) {
+            await db.Atencion.create({
+                paciente_id: id,
+                profesional_id,
+                fecha_atencion: new Date()
+            });
+        }
+
         const [actualizados] = await db.Paciente.update(resto, { where: { id } });
         if (actualizados === 0) {
             return res.status(404).json({ message: "El paciente no fue encontrado para actualizar." });
@@ -122,6 +146,26 @@ const eliminarPaciente = async (req, res) => {
     }
 };
 
+const obtenerProfesionalPaciente = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const atencion = await db.Atencion.findOne({
+            where: { paciente_id: id },
+            order: [['fecha_atencion', 'DESC']],
+            include: { model: db.Profesional, include: db.User }
+        });
+        if (!atencion) {
+            return res.status(404).json({ message: 'El paciente no posee atenciones.' });
+        }
+        return res.status(200).json(atencion.profesional);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener profesional del paciente.',
+            err,
+        });
+    }
+};
+
 module.exports = {
     listarPacientes,
     crearPaciente,
@@ -129,5 +173,6 @@ module.exports = {
     buscarPacienteRut,
     listarPacientesProfesional,
     actualizarPaciente,
-    eliminarPaciente
+    eliminarPaciente,
+    obtenerProfesionalPaciente
 };

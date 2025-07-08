@@ -38,7 +38,7 @@ const operaciones = {
       metodo: 'POST',
       ruta: '/pacientes',
       descripcion: 'Crear paciente',
-      campos: ['sexo', 'comentarios', 'user_id', 'profesional_id']
+      campos: ['sexo', 'comentarios', 'user_id']
     },
     {
       metodo: 'POST',
@@ -50,7 +50,7 @@ const operaciones = {
       metodo: 'PUT',
       ruta: '/pacientes',
       descripcion: 'Actualizar paciente',
-      campos: ['id', 'sexo', 'comentarios', 'user_id', 'profesional_id']
+      campos: ['id', 'sexo', 'comentarios', 'user_id']
     },
     { metodo: 'DELETE', ruta: '/pacientes', descripcion: 'Eliminar paciente', campos: ['id'] }
   ],
