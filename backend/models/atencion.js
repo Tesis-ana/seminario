@@ -2,9 +2,14 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const Atencion = sequelize.define('atencion', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
   paciente_id: {
     type: DataTypes.INTEGER,
-    primaryKey: true,
+    allowNull: false,
     references: {
       model: 'paciente',
       key: 'id'
@@ -12,7 +17,7 @@ const Atencion = sequelize.define('atencion', {
   },
   profesional_id: {
     type: DataTypes.INTEGER,
-    primaryKey: true,
+    allowNull: false,
     references: {
       model: 'profesional',
       key: 'id'
