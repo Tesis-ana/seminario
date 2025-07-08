@@ -61,6 +61,9 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
+  table-layout: fixed;
+  overflow-x: auto;
+  display: block;
 }
 
 th, td {

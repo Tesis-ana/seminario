@@ -90,7 +90,7 @@ export default function ImagenDetalle() {
       <div style={{marginBottom:'1rem'}}>
         <img src={`${BACKEND_URL}/imagenes/${img.id}/archivo`} alt="img" width={256} height={256} />
         {seg ? (
-          <img src={`${BACKEND_URL}/segmentaciones/${seg.id}/mask`} alt="mask" width={256} height={256} style={{marginLeft:'1rem'}} />
+          <img src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`} alt="mask" width={256} height={256} style={{marginLeft:'1rem'}} />
         ) : null}
       </div>
       {pwa && (

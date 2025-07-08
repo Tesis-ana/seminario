@@ -4,7 +4,7 @@ const sequelize = require('../config/database');
 const Segmentacion = sequelize.define('segmentacion', {
     metodo: { type: DataTypes.ENUM('manual', 'automatica') },
     ruta_mascara: { type: DataTypes.TEXT },
-    fecha_creacion: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    fecha_creacion: { type: DataTypes.DATE, defaultValue: DataTypes.NOW ,primaryKey: true},
     imagen_id: {
         type: DataTypes.INTEGER,
         references: {

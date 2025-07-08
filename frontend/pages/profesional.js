@@ -198,7 +198,7 @@ export default function ProfesionalPacientes() {
                     </td>
                     <td>
                       {seg ? (
-                        <img src={`${BACKEND_URL}/segmentaciones/${seg.id}/mask`} alt="mask" width={64} height={64} />
+                        <img src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`} alt="mask" width={64} height={64} />
                       ) : null}
                     </td>
                     {Array.from({ length: 8 }, (_, i) => (

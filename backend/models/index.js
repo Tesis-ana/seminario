@@ -23,8 +23,6 @@ db.Paciente.belongsTo(db.User, { foreignKey: 'user_id' });
 db.User.hasOne(db.Profesional, { foreignKey: 'user_id' });
 db.Profesional.belongsTo(db.User, { foreignKey: 'user_id' });
 
-db.Profesional.hasMany(db.Paciente, { foreignKey: 'profesional_id' });
-db.Paciente.belongsTo(db.Profesional, { foreignKey: 'profesional_id' });
 
 db.Paciente.hasMany(db.Imagen, { foreignKey: 'paciente_id' });
 db.Imagen.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });

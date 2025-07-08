@@ -193,7 +193,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
 
         return res.status(201).json({
             message: 'Segmentación automática creada correctamente.',
-            segmentacionId: segmentacion.id,
+            segmentacionId: segmentacion.imagen_id,
         });
     } catch (err) {
         // Un único catch para errores de spawn o de BD
@@ -268,7 +268,7 @@ const editarSegmentacion = (req, res) => {
 const descargarMascara = async (req, res) => {
     const { id } = req.params;
     try {
-        const seg = await db.Segmentacion.findByPk(id);
+        const seg = await db.Segmentacion.findOne({ where: { imagen_id : id } });
         if (!seg) {
             return res.status(404).json({ message: 'Segmentación no encontrada.' });
         }
