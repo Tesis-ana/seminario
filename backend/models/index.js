@@ -13,6 +13,7 @@ db.Profesional = require("./profesional.js");
 db.Imagen = require("./imagen.js");
 db.Segmentacion = require("./segmentacion.js");
 db.PWATScore = require("./pwatscore.js");
+db.Atencion = require("./atencion.js");
 
 // Relaciones
 
@@ -36,5 +37,11 @@ db.PWATScore.belongsTo(db.Imagen, { foreignKey: 'imagen_id' });
 
 db.Segmentacion.hasMany(db.PWATScore, { foreignKey: 'segmentacion_id' });
 db.PWATScore.belongsTo(db.Segmentacion, { foreignKey: 'segmentacion_id' });
+
+db.Paciente.hasMany(db.Atencion, { foreignKey: 'paciente_id' });
+db.Atencion.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });
+
+db.Profesional.hasMany(db.Atencion, { foreignKey: 'profesional_id' });
+db.Atencion.belongsTo(db.Profesional, { foreignKey: 'profesional_id' });
 
 module.exports = db;
