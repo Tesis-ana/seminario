@@ -93,7 +93,7 @@ const crearSegmentacionManual = (req, res) => {
             message: segmentacionExistente
                 ? 'Segmentacion actualizada correctamente.'
                 : 'Segmentacion creada correctamente.',
-            segmentacionId: segmentacion.imagen_id,
+            segmentacionId: segmentacion.id,
         });
         } catch (err) {
             return res.status(500).json({
@@ -210,7 +210,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
             message: existente
                 ? 'Segmentación automática actualizada correctamente.'
                 : 'Segmentación automática creada correctamente.',
-            segmentacionId: segmentacion.imagen_id,
+            segmentacionId: segmentacion.id,
         });
     } catch (err) {
         // Un único catch para errores de spawn o de BD
