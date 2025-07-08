@@ -71,10 +71,28 @@ export default function Pwatscore() {
       if (seg) {
         setSegmentacionId(seg.id);
         setExistingSegId(seg.id);
-        const url = `${BACKEND_URL}/segmentaciones/${seg.id}/mask`;
+        const url = `${BACKEND_URL}/segmentaciones/${json.id}/mask`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
         setShowCanvas(true);
+      }
+
+      // obtener pwatscore existente si lo hay
+      const scoreRes = await apiFetch('/pwatscore');
+      const scores = await scoreRes.json();
+      const score = scores.find(s => s.imagen_id === json.id);
+      if (score) {
+        setPwatscore({
+          id: score.id,
+          cat1: score.cat1,
+          cat2: score.cat2,
+          cat3: score.cat3,
+          cat4: score.cat4,
+          cat5: score.cat5,
+          cat6: score.cat6,
+          cat7: score.cat7,
+          cat8: score.cat8
+        });
       }
     } catch (err) {
       setError(err.message);
@@ -97,7 +115,7 @@ export default function Pwatscore() {
       const seg = segs.find(s => s.imagen_id === imagen.id);
       if (seg) {
         setExistingSegId(seg.id);
-        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${seg.id}/mask`);
+        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${imagen.id}/mask`);
         setNewMaskPreview(URL.createObjectURL(maskFile));
         setChooseMask(true);
         setShowCanvas(false);
@@ -112,7 +130,7 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setSegmentacionId(json.segmentacionId);
-      const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+      const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
       setMaskUrl(url);
       setExistingSegId(json.segmentacionId);
       setExistingMaskUrl(url);
@@ -155,7 +173,7 @@ const handleAutomatico = async () => {
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Error');
     setSegmentacionId(json.segmentacionId);
-    const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+    const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
     setMaskUrl(url);
     setExistingSegId(json.segmentacionId);
     setExistingMaskUrl(url);
@@ -185,7 +203,7 @@ const handleAutomatico = async () => {
       const res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
-      const url = `${BACKEND_URL}/segmentaciones/${existingSegId}/mask?${Date.now()}`;
+      const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${Date.now()}`;
       setMaskUrl(url);
       setExistingMaskUrl(url);
       setSegmentacionId(existingSegId);
@@ -258,7 +276,7 @@ const handleAutomatico = async () => {
         }
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
-        const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
+        const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${Date.now()}`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
 
