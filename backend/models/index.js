@@ -23,7 +23,6 @@ db.Paciente.belongsTo(db.User, { foreignKey: 'user_id' });
 db.User.hasOne(db.Profesional, { foreignKey: 'user_id' });
 db.Profesional.belongsTo(db.User, { foreignKey: 'user_id' });
 
-
 db.Paciente.hasMany(db.Imagen, { foreignKey: 'paciente_id' });
 db.Imagen.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });
 
@@ -32,9 +31,6 @@ db.Segmentacion.belongsTo(db.Imagen, { foreignKey: 'imagen_id' });
 
 db.Imagen.hasMany(db.PWATScore, { foreignKey: 'imagen_id' });
 db.PWATScore.belongsTo(db.Imagen, { foreignKey: 'imagen_id' });
-
-db.Segmentacion.hasMany(db.PWATScore, { foreignKey: 'segmentacion_id' });
-db.PWATScore.belongsTo(db.Segmentacion, { foreignKey: 'segmentacion_id' });
 
 db.Paciente.hasMany(db.Atencion, { foreignKey: 'paciente_id' });
 db.Atencion.belongsTo(db.Paciente, { foreignKey: 'paciente_id' });
