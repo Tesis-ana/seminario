@@ -8,7 +8,8 @@ const User = sequelize.define('user', {
   contrasena_hash: { type: DataTypes.STRING(255), allowNull: false },
   rol: { type: DataTypes.ENUM('doctor', 'enfermera', 'admin','paciente','investigador'), allowNull: false },
   creado_en: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  fecha_nacimiento: { type: DataTypes.DATEONLY }
+  sexo: { type: DataTypes.ENUM('M', 'F', 'Otro') },
+  fecha_nacimiento: { type: DataTypes.DATEONLY },
 });
 
 module.exports = User; // NO exportes como función
