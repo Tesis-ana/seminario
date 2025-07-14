@@ -21,6 +21,8 @@ export default function Pwatscore() {
   const [existingMaskUrl, setExistingMaskUrl] = useState(null);
   const [newMaskPreview, setNewMaskPreview] = useState(null);
   const [chooseMask, setChooseMask] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [profesional, setProfesional] = useState(null);
 
 
   const canvasRef = useRef(null);
@@ -55,6 +57,7 @@ export default function Pwatscore() {
     setNewMaskPreview(null);
 
     setPwatscore(null);
+    setProfesional(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
         method: 'POST',
@@ -64,6 +67,18 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setImagen(json);
+      // obtener profesional del ultimo control del paciente
+      try {
+        const profRes = await apiFetch(`/pacientes/${json.paciente_id}/profesional`);
+        if (profRes.ok) {
+          const profesional = await profRes.json();
+          setProfesional({
+            nombre: profesional.user?.nombre,
+            correo: profesional.user?.correo,
+            especialidad: profesional.especialidad
+          });
+        }
+      } catch (_) { /* ignore */ }
       // obtener segmentacion existente si la hay
       const segRes = await apiFetch('/segmentaciones');
       const segs = await segRes.json();
@@ -227,8 +242,10 @@ const handleAutomatico = async () => {
     if (!drawing) return;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = drawColor;
     ctx.fillRect(x, y, brushSize, brushSize);
@@ -335,17 +352,20 @@ const handleAutomatico = async () => {
       </div>
       {imagen && (
         <div className="mt-1">
-          <div style={{position:'relative', display:'inline-block', width:'256px', height:'256px'}}>
+          {profesional && (
+            <p>Último control por: {profesional.nombre} ({profesional.especialidad})</p>
+          )}
+          <div style={{position:'relative', display:'inline-block', width:`${256*zoom}px`, height:`${256*zoom}px`}}>
             <img
               src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
               alt="imagen"
-              width={256}
-              height={256}
+              width={256 * zoom}
+              height={256 * zoom}
             />
             {showCanvas && (
               <canvas
                 ref={canvasRef}
-                style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity}}
+                style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity, width:`${256*zoom}px`, height:`${256*zoom}px`}}
 
                 onMouseDown={startDraw}
                 onMouseUp={endDraw}
@@ -368,6 +388,18 @@ const handleAutomatico = async () => {
             <button onClick={handleAutomatico}>Generar automática</button>
             <button onClick={handleNuevo}>Dibujar máscara</button>
             {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
+          </div>
+          <div className="mt-1">
+            <label>Zoom:</label>
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={zoom}
+              onChange={e => setZoom(parseFloat(e.target.value))}
+            />
+            <span style={{marginLeft:'0.5rem'}}>{zoom.toFixed(1)}x</span>
           </div>
           {chooseMask && (
             <div className="mt-1">
