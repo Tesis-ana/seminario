@@ -341,6 +341,16 @@ const handleAutomatico = async () => {
     }
   };
 
+  const handleWheelZoom = (e) => {
+    if (!imagen) return;
+    e.preventDefault();
+    setZoom(z => {
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      const next = Math.min(3, Math.max(1, parseFloat((z + delta).toFixed(2))));
+      return next;
+    });
+  };
+
   if (!token) return null;
 
   return (
@@ -355,7 +365,10 @@ const handleAutomatico = async () => {
           {profesional && (
             <p>Último control por: {profesional.nombre} ({profesional.especialidad})</p>
           )}
-          <div style={{position:'relative', display:'inline-block', width:`${256*zoom}px`, height:`${256*zoom}px`}}>
+          <div
+            style={{position:'relative', display:'inline-block', width:`${256*zoom}px`, height:`${256*zoom}px`}}
+            onWheel={handleWheelZoom}
+          >
             <img
               src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
               alt="imagen"
