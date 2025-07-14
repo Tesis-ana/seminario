@@ -344,11 +344,14 @@ const handleAutomatico = async () => {
   const handleWheelZoom = (e) => {
     if (!imagen) return;
     e.preventDefault();
+    e.stopPropagation();
+    const { scrollX, scrollY } = window;
     setZoom(z => {
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
       const next = Math.min(3, Math.max(1, parseFloat((z + delta).toFixed(2))));
       return next;
     });
+    window.scrollTo(scrollX, scrollY);
   };
 
   if (!token) return null;
@@ -474,7 +477,16 @@ const handleAutomatico = async () => {
           {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
               <label title={CAT_INFO[n]}>{`Categoria ${n}: `}</label>
-              <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
+              <input
+                type="number"
+                min="0"
+                max="4"
+                value={pwatscore[`cat${n}`]}
+                onChange={e => {
+                  const val = Math.min(4, Math.max(0, parseInt(e.target.value, 10) || 0));
+                  setPwatscore({ ...pwatscore, [`cat${n}`]: val });
+                }}
+              />
 
             </div>
           ))}
