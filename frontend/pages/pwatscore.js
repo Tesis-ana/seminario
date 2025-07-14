@@ -22,6 +22,7 @@ export default function Pwatscore() {
   const [newMaskPreview, setNewMaskPreview] = useState(null);
   const [chooseMask, setChooseMask] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
   const [profesional, setProfesional] = useState(null);
 
 
@@ -346,13 +347,18 @@ const handleAutomatico = async () => {
     e.preventDefault();
     e.stopPropagation();
     const { scrollX, scrollY } = window;
+    setScrollPos({ x: scrollX, y: scrollY });
     setZoom(z => {
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
       const next = Math.min(3, Math.max(1, parseFloat((z + delta).toFixed(2))));
       return next;
     });
-    window.scrollTo(scrollX, scrollY);
+    // scroll restoration handled in effect
   };
+
+  useEffect(() => {
+    window.scrollTo(scrollPos.x, scrollPos.y);
+  }, [zoom]);
 
   if (!token) return null;
 
@@ -413,7 +419,10 @@ const handleAutomatico = async () => {
               max="3"
               step="0.1"
               value={zoom}
-              onChange={e => setZoom(parseFloat(e.target.value))}
+              onChange={e => {
+                setScrollPos({ x: window.scrollX, y: window.scrollY });
+                setZoom(parseFloat(e.target.value));
+              }}
             />
             <span style={{marginLeft:'0.5rem'}}>{zoom.toFixed(1)}x</span>
           </div>
