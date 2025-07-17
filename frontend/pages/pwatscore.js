@@ -21,6 +21,9 @@ export default function Pwatscore() {
   const [existingMaskUrl, setExistingMaskUrl] = useState(null);
   const [newMaskPreview, setNewMaskPreview] = useState(null);
   const [chooseMask, setChooseMask] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
+  const [profesional, setProfesional] = useState(null);
 
 
   const canvasRef = useRef(null);
@@ -55,6 +58,7 @@ export default function Pwatscore() {
     setNewMaskPreview(null);
 
     setPwatscore(null);
+    setProfesional(null);
     try {
       const res = await apiFetch('/imagenes/buscar', {
         method: 'POST',
@@ -64,6 +68,18 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setImagen(json);
+      // obtener profesional del ultimo control del paciente
+      try {
+        const profRes = await apiFetch(`/pacientes/${json.paciente_id}/profesional`);
+        if (profRes.ok) {
+          const profesional = await profRes.json();
+          setProfesional({
+            nombre: profesional.user?.nombre,
+            correo: profesional.user?.correo,
+            especialidad: profesional.especialidad
+          });
+        }
+      } catch (_) { /* ignore */ }
       // obtener segmentacion existente si la hay
       const segRes = await apiFetch('/segmentaciones');
       const segs = await segRes.json();
@@ -71,10 +87,28 @@ export default function Pwatscore() {
       if (seg) {
         setSegmentacionId(seg.id);
         setExistingSegId(seg.id);
-        const url = `${BACKEND_URL}/segmentaciones/${seg.id}/mask`;
+        const url = `${BACKEND_URL}/segmentaciones/${json.id}/mask`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
         setShowCanvas(true);
+      }
+
+      // obtener pwatscore existente si lo hay
+      const scoreRes = await apiFetch('/pwatscore');
+      const scores = await scoreRes.json();
+      const score = scores.find(s => s.imagen_id === json.id);
+      if (score) {
+        setPwatscore({
+          id: score.id,
+          cat1: score.cat1,
+          cat2: score.cat2,
+          cat3: score.cat3,
+          cat4: score.cat4,
+          cat5: score.cat5,
+          cat6: score.cat6,
+          cat7: score.cat7,
+          cat8: score.cat8
+        });
       }
     } catch (err) {
       setError(err.message);
@@ -97,7 +131,7 @@ export default function Pwatscore() {
       const seg = segs.find(s => s.imagen_id === imagen.id);
       if (seg) {
         setExistingSegId(seg.id);
-        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${seg.id}/mask`);
+        setExistingMaskUrl(`${BACKEND_URL}/segmentaciones/${imagen.id}/mask`);
         setNewMaskPreview(URL.createObjectURL(maskFile));
         setChooseMask(true);
         setShowCanvas(false);
@@ -112,7 +146,7 @@ export default function Pwatscore() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
       setSegmentacionId(json.segmentacionId);
-      const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+      const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
       setMaskUrl(url);
       setExistingSegId(json.segmentacionId);
       setExistingMaskUrl(url);
@@ -155,7 +189,7 @@ const handleAutomatico = async () => {
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Error');
     setSegmentacionId(json.segmentacionId);
-    const url = `${BACKEND_URL}/segmentaciones/${json.segmentacionId}/mask`;
+    const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
     setMaskUrl(url);
     setExistingSegId(json.segmentacionId);
     setExistingMaskUrl(url);
@@ -185,7 +219,7 @@ const handleAutomatico = async () => {
       const res = await apiFetch('/segmentaciones/editar', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Error');
-      const url = `${BACKEND_URL}/segmentaciones/${existingSegId}/mask?${Date.now()}`;
+      const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${Date.now()}`;
       setMaskUrl(url);
       setExistingMaskUrl(url);
       setSegmentacionId(existingSegId);
@@ -209,8 +243,10 @@ const handleAutomatico = async () => {
     if (!drawing) return;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = drawColor;
     ctx.fillRect(x, y, brushSize, brushSize);
@@ -258,7 +294,7 @@ const handleAutomatico = async () => {
         }
         if (!res.ok) throw new Error(json.message || 'Error');
         alert('Máscara guardada');
-        const url = `${BACKEND_URL}/segmentaciones/${id}/mask?${Date.now()}`;
+        const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${Date.now()}`;
         setMaskUrl(url);
         setExistingMaskUrl(url);
 
@@ -306,6 +342,24 @@ const handleAutomatico = async () => {
     }
   };
 
+  const handleWheelZoom = (e) => {
+    if (!imagen) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const { scrollX, scrollY } = window;
+    setScrollPos({ x: scrollX, y: scrollY });
+    setZoom(z => {
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      const next = Math.min(3, Math.max(1, parseFloat((z + delta).toFixed(2))));
+      return next;
+    });
+    // scroll restoration handled in effect
+  };
+
+  useEffect(() => {
+    window.scrollTo(scrollPos.x, scrollPos.y);
+  }, [zoom]);
+
   if (!token) return null;
 
   return (
@@ -317,17 +371,23 @@ const handleAutomatico = async () => {
       </div>
       {imagen && (
         <div className="mt-1">
-          <div style={{position:'relative', display:'inline-block', width:'256px', height:'256px'}}>
+          {profesional && (
+            <p>Último control por: {profesional.nombre} ({profesional.especialidad})</p>
+          )}
+          <div
+            style={{position:'relative', display:'inline-block', width:`${256*zoom}px`, height:`${256*zoom}px`}}
+            onWheel={handleWheelZoom}
+          >
             <img
               src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
               alt="imagen"
-              width={256}
-              height={256}
+              width={256 * zoom}
+              height={256 * zoom}
             />
             {showCanvas && (
               <canvas
                 ref={canvasRef}
-                style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity}}
+                style={{position:'absolute', top:0, left:0, cursor:'crosshair', opacity: maskOpacity, width:`${256*zoom}px`, height:`${256*zoom}px`}}
 
                 onMouseDown={startDraw}
                 onMouseUp={endDraw}
@@ -350,6 +410,21 @@ const handleAutomatico = async () => {
             <button onClick={handleAutomatico}>Generar automática</button>
             <button onClick={handleNuevo}>Dibujar máscara</button>
             {loadingMask && <div className="spinner" style={{marginLeft:'0.5rem'}}></div>}
+          </div>
+          <div className="mt-1">
+            <label>Zoom:</label>
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={zoom}
+              onChange={e => {
+                setScrollPos({ x: window.scrollX, y: window.scrollY });
+                setZoom(parseFloat(e.target.value));
+              }}
+            />
+            <span style={{marginLeft:'0.5rem'}}>{zoom.toFixed(1)}x</span>
           </div>
           {chooseMask && (
             <div className="mt-1">
@@ -411,7 +486,16 @@ const handleAutomatico = async () => {
           {[1,2,3,4,5,6,7,8].map(n => (
             <div key={n}>
               <label title={CAT_INFO[n]}>{`Categoria ${n}: `}</label>
-              <input type="number" value={pwatscore[`cat${n}`]} onChange={e => setPwatscore({ ...pwatscore, [`cat${n}`]: e.target.value })} />
+              <input
+                type="number"
+                min="0"
+                max="4"
+                value={pwatscore[`cat${n}`]}
+                onChange={e => {
+                  const val = Math.min(4, Math.max(0, parseInt(e.target.value, 10) || 0));
+                  setPwatscore({ ...pwatscore, [`cat${n}`]: val });
+                }}
+              />
 
             </div>
           ))}

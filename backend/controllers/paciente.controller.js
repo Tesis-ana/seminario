@@ -65,9 +65,21 @@ const buscarPaciente = async (req, res) => {
 
 const buscarPacienteRut = async (req, res) => {
     const { rut } = req.body;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT requerido.' });
+    }
+    const limpio = rut.replace(/[.\-]/g, '');
     try {
         const data = await db.Paciente.findOne({
-            where: { user_id: rut },
+            where: db.Sequelize.where(
+                db.Sequelize.fn(
+                    'REPLACE',
+                    db.Sequelize.fn('REPLACE', db.Sequelize.col('user_id'), '.', ''),
+                    '-',
+                    ''
+                ),
+                limpio
+            ),
             include: db.User
         });
         if (!data) {
