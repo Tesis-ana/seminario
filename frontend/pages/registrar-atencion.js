@@ -59,7 +59,7 @@ export default function RegistrarAtencion() {
       const res = await apiFetch('/pacientes/buscar-rut', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rut: rut.replace(/[.\-]/g, '') })
+        body: JSON.stringify({ rut })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error');

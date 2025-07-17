@@ -43,8 +43,22 @@ const buscarProfesional = async (req, res) => {
 
 const buscarProfesionalRut = async (req, res) => {
     const { rut } = req.body;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT requerido.' });
+    }
+    const limpio = rut.replace(/[.\-]/g, '');
     try {
-        const data = await db.Profesional.findOne({ where: { user_id: rut } });
+        const data = await db.Profesional.findOne({
+            where: db.Sequelize.where(
+                db.Sequelize.fn(
+                    'REPLACE',
+                    db.Sequelize.fn('REPLACE', db.Sequelize.col('user_id'), '.', ''),
+                    '-',
+                    ''
+                ),
+                limpio
+            )
+        });
         if (!data) {
             return res.status(404).json({ message: "El profesional no existe." });
         }
