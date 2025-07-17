@@ -136,6 +136,9 @@ export default function ProfesionalPacientes() {
   return (
     <div className="container">
       <h1>Mis Pacientes</h1>
+      <p>
+        <a href="/registrar-atencion">Registrar atención</a>
+      </p>
       <div className="mt-1">
         <input type="text" placeholder="Buscar por RUT" value={filtro} onChange={e => setFiltro(e.target.value)} />
       </div>

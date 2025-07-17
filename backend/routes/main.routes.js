@@ -7,6 +7,7 @@ const profesionalesRoutes = require('./profesional.routes.js');
 const imagenesRoutes = require('./imagen.routes.js');
 const segmentacionesRoutes = require('./segmentacion.routes.js');
 const pwatscoreRoutes = require('./pwatscore.routes.js');
+const atencionesRoutes = require('./atencion.routes.js');
 
 module.exports = app => {
     // Configurar las rutas principales
@@ -16,6 +17,7 @@ module.exports = app => {
     app.use('/imagenes', imagenesRoutes);
     app.use('/segmentaciones', segmentacionesRoutes);
     app.use('/pwatscore', pwatscoreRoutes);
+    app.use('/atenciones', atencionesRoutes);
     app.use('/', (req, res) => {
         res.status(200).json({ message: 'API principal activa' });
     });
