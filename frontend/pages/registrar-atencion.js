@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
 
@@ -10,6 +10,15 @@ export default function RegistrarAtencion() {
   const [profId, setProfId] = useState(null);
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
+  const searchTimeout = useRef(null);
+
+  const formatRut = (valor) => {
+    const limpio = valor.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (limpio.length <= 1) return limpio;
+    const cuerpo = limpio.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const dv = limpio.slice(-1);
+    return `${cuerpo}-${dv}`;
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('token');
@@ -30,6 +39,18 @@ export default function RegistrarAtencion() {
     fetchProf();
   }, [router]);
 
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!rut) {
+      setPaciente(null);
+      return;
+    }
+    searchTimeout.current = setTimeout(() => {
+      buscar();
+    }, 500);
+    return () => clearTimeout(searchTimeout.current);
+  }, [rut]);
+
   const buscar = async () => {
     setError('');
     setPaciente(null);
@@ -38,7 +59,7 @@ export default function RegistrarAtencion() {
       const res = await apiFetch('/pacientes/buscar-rut', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rut })
+        body: JSON.stringify({ rut: rut.replace(/[.\-]/g, '') })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error');
@@ -75,7 +96,7 @@ export default function RegistrarAtencion() {
           type="text"
           placeholder="Buscar por RUT"
           value={rut}
-          onChange={e => setRut(e.target.value)}
+          onChange={e => setRut(formatRut(e.target.value))}
         />
         <button onClick={buscar}>Buscar</button>
       </div>
