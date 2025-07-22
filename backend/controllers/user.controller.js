@@ -105,6 +105,22 @@ const eliminarUser = async (req, res) => {
     }
 };
 
+const obtenerUserActual = async (req, res) => {
+    const rut = req.user?.rut;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT no disponible.' });
+    }
+    try {
+        const data = await db.User.findOne({ where: { rut } });
+        if (!data) {
+            return res.status(404).json({ message: 'El usuario no existe.' });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al obtener usuario.', err });
+    }
+};
+
 const login = async (req, res) => {
     const { rut, contra } = req.body;
     try {
@@ -154,6 +170,7 @@ module.exports = {
     actualizarUser,
     eliminarUser,
     crearUsersBulk,
+    obtenerUserActual,
     login,
     logout
 };

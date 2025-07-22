@@ -8,6 +8,7 @@ router.get("/", controlador.listarPacientes);
 router.post("/", controlador.crearPaciente);
 router.post("/buscar", controlador.buscarPaciente);
 router.post("/buscar-rut", controlador.buscarPacienteRut);
+router.get("/me", controlador.obtenerPacienteActual);
 router.get("/profesional/:profesionalId", controlador.listarPacientesProfesional);
 router.get("/:id/profesional", controlador.obtenerProfesionalPaciente);
 router.put("/", controlador.actualizarPaciente);

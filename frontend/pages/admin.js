@@ -14,6 +14,7 @@ export default function Admin() {
   const [editProfId, setEditProfId] = useState(null);
   const [userCsv, setUserCsv] = useState('');
   const [profCsv, setProfCsv] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
 
   useEffect(() => {
     const tok = localStorage.getItem('token');
@@ -27,6 +28,7 @@ export default function Admin() {
       return;
     }
     loadAll();
+    apiFetch('/users/me').then(r => r.ok && r.json().then(setUserInfo));
   }, [router]);
 
   const loadAll = async () => {
@@ -147,7 +149,16 @@ export default function Admin() {
 
   return (
     <div className="container">
-      <h1>Panel de Administración</h1>
+      {userInfo ? (
+        <div>
+          <h1>Administrador: {userInfo.nombre}</h1>
+          <p><strong>RUT:</strong> {userInfo.rut}</p>
+          <p><strong>Correo:</strong> {userInfo.correo}</p>
+          <h2 className="mt-1">Panel de Administración</h2>
+        </div>
+      ) : (
+        <h1>Panel de Administración</h1>
+      )}
 
       <h2>Usuarios</h2>
       <div>

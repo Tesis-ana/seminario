@@ -158,6 +158,22 @@ const eliminarPaciente = async (req, res) => {
     }
 };
 
+const obtenerPacienteActual = async (req, res) => {
+    const rut = req.user?.rut;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT no disponible.' });
+    }
+    try {
+        const data = await db.Paciente.findOne({ where: { user_id: rut }, include: db.User });
+        if (!data) {
+            return res.status(404).json({ message: 'El paciente no existe.' });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al obtener paciente.', err });
+    }
+};
+
 const obtenerProfesionalPaciente = async (req, res) => {
     const { id } = req.params;
     try {
@@ -186,5 +202,6 @@ module.exports = {
     listarPacientesProfesional,
     actualizarPaciente,
     eliminarPaciente,
+    obtenerPacienteActual,
     obtenerProfesionalPaciente
 };
