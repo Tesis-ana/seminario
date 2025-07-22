@@ -193,7 +193,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
 
         return res.status(201).json({
             message: 'Segmentación automática creada correctamente.',
-            segmentacionId: segmentacion.imagen_id,
+            segmentacionId: segmentacion.id,
         });
     } catch (err) {
         // Un único catch para errores de spawn o de BD
@@ -223,9 +223,12 @@ const editarSegmentacion = (req, res) => {
                 .json({ message: 'La segmentacion no existe.' });
         }
         const foto = req.file;
+        console.log("a");
         if (!foto) {
             return res.status(400).json({ message: 'La imagen es requerida.' });
         }
+        console.log("a2");
+
         const formatosPermitidos = ['image/jpeg', 'image/jpg'];
         if (!formatosPermitidos.includes(foto.mimetype)) {
             return res.status(400).json({
@@ -233,10 +236,14 @@ const editarSegmentacion = (req, res) => {
                     'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
             });
         }
+        console.log("a3");
+
         let filename = path.basename(
             segmentacion.ruta_mascara,
             path.extname(segmentacion.ruta_mascara)
         );
+        console.log("a4");
+
         const rutaSegmentacion = path.join(
             __dirname,
             '../../categorizador/predicts/masks'
@@ -244,14 +251,20 @@ const editarSegmentacion = (req, res) => {
         if (!fs.existsSync(rutaSegmentacion)) {
             fs.mkdirSync(rutaSegmentacion, { recursive: true });
         }
+        console.log("a5");
+
         const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
 
         // Actualizar la ruta de la máscara en la base de datos
         segmentacion.ruta_mascara = rutaArchivo;
+        console.log("a6");
+
         await segmentacion.save();
         // Guardar el archivo en la ruta especificada
         const filePath = path.join(rutaSegmentacion, `${filename}.jpg`);
         fs.writeFileSync(filePath, foto.buffer);
+        console.log("a7");
+
         return res.status(200).json({
             message: 'Segmentacion editada correctamente.',
             segmentacionId: segmentacion.id,

@@ -9,6 +9,8 @@ export default function Paciente() {
   const [imagenes, setImagenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+  const [pacInfo, setPacInfo] = useState(null);
 
   const blendColors = (c1, c2, ratio) => {
     const hex = (c) => c.replace('#', '');
@@ -30,21 +32,18 @@ export default function Paciente() {
       router.replace('/');
       return;
     }
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const rut = payload.rut;
-
     const fetchData = async () => {
       try {
-        const pacRes = await apiFetch('/pacientes');
-        const pacientes = await pacRes.json();
-        const paciente = pacientes.find(p => p.user_id === rut);
-        if (!paciente) {
-          setError('Paciente no encontrado');
-          setLoading(false);
-          return;
-        }
+        const [userRes, pacRes] = await Promise.all([
+          apiFetch('/users/me'),
+          apiFetch('/pacientes/me')
+        ]);
+        if (userRes.ok) setUserInfo(await userRes.json());
+        if (!pacRes.ok) throw new Error('Paciente no encontrado');
+        const paciente = await pacRes.json();
+        setPacInfo(paciente);
         const [imgRes, segRes, pwaRes] = await Promise.all([
-          apiFetch('/imagenes'),
+          apiFetch(`/imagenes/paciente/${paciente.id}`),
           apiFetch('/segmentaciones'),
           apiFetch('/pwatscore')
         ]);
@@ -52,7 +51,6 @@ export default function Paciente() {
         const segs = await segRes.json();
         const pwas = await pwaRes.json();
         const datos = imgs
-          .filter(img => img.paciente_id === paciente.id)
           .map(img => {
             const seg = segs.find(s => s.imagen_id === img.id);
             const pwa = pwas.find(p => p.imagen_id === img.id);
@@ -74,7 +72,22 @@ export default function Paciente() {
 
   return (
     <div className="container">
-      <h1>Mis Imágenes</h1>
+      <h1>Mis Datos</h1>
+      {userInfo && (
+        <div>
+          <p><strong>RUT:</strong> {userInfo.rut}</p>
+          <p><strong>Nombre:</strong> {userInfo.nombre}</p>
+          <p><strong>Correo:</strong> {userInfo.correo}</p>
+        </div>
+      )}
+      {pacInfo && (
+        <div>
+          <p><strong>Sexo:</strong> {pacInfo.sexo}</p>
+          <p><strong>Ingreso:</strong> {new Date(pacInfo.fecha_ingreso).toLocaleDateString()}</p>
+          <p><strong>Comentarios:</strong> {pacInfo.comentarios}</p>
+        </div>
+      )}
+      <h2 className="mt-1">Mis Imágenes</h2>
       <table className="mt-1">
         <thead>
           <tr>

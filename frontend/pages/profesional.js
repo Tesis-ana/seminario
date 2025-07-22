@@ -11,6 +11,8 @@ export default function ProfesionalPacientes() {
   const [seleccionado, setSeleccionado] = useState(null);
   const [imagenes, setImagenes] = useState([]);
   const [ultimas, setUltimas] = useState({});
+  const [userInfo, setUserInfo] = useState(null);
+  const [profInfo, setProfInfo] = useState(null);
 
   const blendColors = (c1, c2, ratio) => {
     const hex = (c) => c.replace('#', '');
@@ -34,9 +36,14 @@ export default function ProfesionalPacientes() {
     }
     async function load() {
       try {
-        const resProf = await apiFetch('/profesionales/me');
-        const prof = await resProf.json();
-        if (!resProf.ok) throw new Error(prof.message || 'Error');
+        const [userRes, profRes] = await Promise.all([
+          apiFetch('/users/me'),
+          apiFetch('/profesionales/me')
+        ]);
+        if (userRes.ok) setUserInfo(await userRes.json());
+        const prof = await profRes.json();
+        if (!profRes.ok) throw new Error(prof.message || 'Error');
+        setProfInfo(prof);
         const resPacs = await apiFetch(`/pacientes/profesional/${prof.id}`);
         const pacs = await resPacs.json();
         setPacientes(pacs);
@@ -135,7 +142,21 @@ export default function ProfesionalPacientes() {
 
   return (
     <div className="container">
-      <h1>Mis Pacientes</h1>
+      <h1>Mis Datos</h1>
+      {userInfo && (
+        <div>
+          <p><strong>RUT:</strong> {userInfo.rut}</p>
+          <p><strong>Nombre:</strong> {userInfo.nombre}</p>
+          <p><strong>Correo:</strong> {userInfo.correo}</p>
+        </div>
+      )}
+      {profInfo && (
+        <div>
+          <p><strong>Especialidad:</strong> {profInfo.especialidad}</p>
+          <p><strong>Ingreso:</strong> {profInfo.fecha_ingreso}</p>
+        </div>
+      )}
+      <h2 className="mt-1">Mis Pacientes</h2>
       <p>
         <a href="/registrar-atencion">Registrar atención</a>
       </p>

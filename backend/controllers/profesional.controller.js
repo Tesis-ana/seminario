@@ -25,6 +25,21 @@ const crearProfesional = async (req, res) => {
     }
 };
 
+const crearProfesionalesBulk = async (req, res) => {
+    const { profesionales } = req.body;
+    if (!Array.isArray(profesionales)) {
+        return res.status(400).json({ message: 'Lista de profesionales requerida' });
+    }
+    try {
+        for (const p of profesionales) {
+            await db.Profesional.create(p);
+        }
+        return res.status(201).json({ message: 'Profesionales creados' });
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al crear profesionales', err });
+    }
+};
+
 const buscarProfesional = async (req, res) => {
     const { id } = req.body;
     try {
@@ -129,5 +144,6 @@ module.exports = {
     buscarProfesionalRut,
     obtenerProfesionalActual,
     actualizarProfesional,
-    eliminarProfesional
+    eliminarProfesional,
+    crearProfesionalesBulk
 };

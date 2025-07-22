@@ -33,6 +33,28 @@ const crearUser = async (req, res) => {
     }
 };
 
+const crearUsersBulk = async (req, res) => {
+    const { users } = req.body;
+    if (!Array.isArray(users)) {
+        return res.status(400).json({ message: 'Lista de usuarios requerida' });
+    }
+    try {
+        for (const u of users) {
+            const hashedPassword = await bcrypt.hash(u.contra || '1234', saltRounds);
+            await db.User.create({
+                rut: u.rut,
+                nombre: u.nombre,
+                correo: u.correo,
+                rol: u.rol,
+                contrasena_hash: hashedPassword
+            });
+        }
+        return res.status(201).json({ message: 'Usuarios creados' });
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al crear usuarios', err });
+    }
+};
+
 
 
 const buscarUser = async (req, res) => {
@@ -83,10 +105,26 @@ const eliminarUser = async (req, res) => {
     }
 };
 
-const login = async (req, res) => {
-    const { correo, contra } = req.body;
+const obtenerUserActual = async (req, res) => {
+    const rut = req.user?.rut;
+    if (!rut) {
+        return res.status(400).json({ message: 'RUT no disponible.' });
+    }
     try {
-        const user = await db.User.findOne({ where: { correo } });
+        const data = await db.User.findOne({ where: { rut } });
+        if (!data) {
+            return res.status(404).json({ message: 'El usuario no existe.' });
+        }
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al obtener usuario.', err });
+    }
+};
+
+const login = async (req, res) => {
+    const { rut, contra } = req.body;
+    try {
+        const user = await db.User.findOne({ where: { rut } });
         if (!user) {
             return res.status(404).json({ message: "Usuario no encontrado." });
         }
@@ -131,6 +169,8 @@ module.exports = {
     buscarUser,
     actualizarUser,
     eliminarUser,
+    crearUsersBulk,
+    obtenerUserActual,
     login,
     logout
 };

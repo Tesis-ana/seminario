@@ -6,7 +6,7 @@ import LogoutButton from '../components/LogoutButton';
 export default function Home() {
   const router = useRouter();
   const [token, setToken] = useState(null);
-  const [correo, setCorreo] = useState('');
+  const [rut, setRut] = useState('');
   const [contra, setContra] = useState('');
   const [error, setError] = useState('');
 
@@ -20,7 +20,11 @@ export default function Home() {
         router.push('/profesional');
       } else if (rol === 'paciente') {
         router.push('/paciente');
-      } 
+      } else if (rol === 'admin') {
+        router.push('/admin');
+      } else if (rol === 'investigador') {
+        router.push('/investigador');
+      }
     } catch (e) {
       console.error('Error decoding token', e);
     }
@@ -41,7 +45,7 @@ export default function Home() {
       const res = await apiFetch('/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contra })
+        body: JSON.stringify({ rut, contra })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -61,8 +65,8 @@ export default function Home() {
         <h1>Login</h1>
         <form onSubmit={handleSubmit}>
           <div>
-            <label>Correo:</label>
-            <input value={correo} onChange={(e) => setCorreo(e.target.value)} />
+            <label>RUT:</label>
+            <input value={rut} onChange={(e) => setRut(e.target.value)} />
           </div>
           <div>
             <label>Contraseña:</label>
