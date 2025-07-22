@@ -211,64 +211,83 @@ const editarSegmentacion = (req, res) => {
         }
         try {
             const { id } = req.body;
-        if (!id) {
-            return res
-                .status(400)
-                .json({ message: 'El id de segmentacion es requerido.' });
-        }
-        const segmentacion = await db.Segmentacion.findOne({ where: { id } });
-        if (!segmentacion) {
-            return res
-                .status(404)
-                .json({ message: 'La segmentacion no existe.' });
-        }
-        const foto = req.file;
-        console.log("a");
-        if (!foto) {
-            return res.status(400).json({ message: 'La imagen es requerida.' });
-        }
-        console.log("a2");
+            if (!id) {
+                return res
+                    .status(400)
+                    .json({ message: 'El id de segmentacion o imagen es requerido.' });
+            }
 
-        const formatosPermitidos = ['image/jpeg', 'image/jpg'];
-        if (!formatosPermitidos.includes(foto.mimetype)) {
-            return res.status(400).json({
-                message:
-                    'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
+            const foto = req.file;
+            if (!foto) {
+                return res.status(400).json({ message: 'La imagen es requerida.' });
+            }
+
+            const formatosPermitidos = ['image/jpeg', 'image/jpg'];
+            if (!formatosPermitidos.includes(foto.mimetype)) {
+                return res.status(400).json({
+                    message:
+                        'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
+                });
+            }
+
+            // Buscar segmentación por id o por imagen_id
+            let segmentacion = await db.Segmentacion.findOne({
+                where: {
+                    [Op.or]: [{ id }, { imagen_id: id }],
+                },
             });
-        }
-        console.log("a3");
 
-        let filename = path.basename(
-            segmentacion.ruta_mascara,
-            path.extname(segmentacion.ruta_mascara)
-        );
-        console.log("a4");
+            let imagen;
+            if (segmentacion) {
+                imagen = await db.Imagen.findByPk(segmentacion.imagen_id);
+            } else {
+                // Si no existe segmentación, interpretar id como imagen_id
+                imagen = await db.Imagen.findByPk(id);
+                if (!imagen) {
+                    return res
+                        .status(404)
+                        .json({ message: 'La segmentacion o imagen no existe.' });
+                }
+            }
 
-        const rutaSegmentacion = path.join(
-            __dirname,
-            '../../categorizador/predicts/masks'
-        );
-        if (!fs.existsSync(rutaSegmentacion)) {
-            fs.mkdirSync(rutaSegmentacion, { recursive: true });
-        }
-        console.log("a5");
+            const filename = path.basename(
+                imagen.nombre_archivo,
+                path.extname(imagen.nombre_archivo)
+            );
 
-        const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
+            const rutaSegmentacion = path.join(
+                __dirname,
+                '../../categorizador/predicts/masks'
+            );
+            if (!fs.existsSync(rutaSegmentacion)) {
+                fs.mkdirSync(rutaSegmentacion, { recursive: true });
+            }
 
-        // Actualizar la ruta de la máscara en la base de datos
-        segmentacion.ruta_mascara = rutaArchivo;
-        console.log("a6");
+            const rutaArchivo = path.join(rutaSegmentacion, `${filename}.jpg`);
 
-        await segmentacion.save();
-        // Guardar el archivo en la ruta especificada
-        const filePath = path.join(rutaSegmentacion, `${filename}.jpg`);
-        fs.writeFileSync(filePath, foto.buffer);
-        console.log("a7");
+            // Guardar el archivo en la ruta especificada
+            fs.writeFileSync(rutaArchivo, foto.buffer);
 
-        return res.status(200).json({
-            message: 'Segmentacion editada correctamente.',
-            segmentacionId: segmentacion.id,
-        });
+            if (segmentacion) {
+                // Actualizar ruta de máscara existente
+                segmentacion.ruta_mascara = rutaArchivo;
+                await segmentacion.save();
+                return res.status(200).json({
+                    message: 'Segmentacion editada correctamente.',
+                    segmentacionId: segmentacion.id,
+                });
+            } else {
+                // Crear nueva segmentación
+                segmentacion = await db.Segmentacion.create({
+                    imagen_id: id,
+                    ruta_mascara: rutaArchivo,
+                    metodo: 'manual',
+                });
+                return res.status(201).json({
+                    message: 'Segmentacion creada correctamente.',
+                    segmentacionId: segmentacion.id,
+                });
+            }
         } catch (error) {
             return res.status(500).json({
                 message: 'Error al editar segmentacion.',
