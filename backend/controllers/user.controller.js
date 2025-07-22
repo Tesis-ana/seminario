@@ -33,6 +33,28 @@ const crearUser = async (req, res) => {
     }
 };
 
+const crearUsersBulk = async (req, res) => {
+    const { users } = req.body;
+    if (!Array.isArray(users)) {
+        return res.status(400).json({ message: 'Lista de usuarios requerida' });
+    }
+    try {
+        for (const u of users) {
+            const hashedPassword = await bcrypt.hash(u.contra || '1234', saltRounds);
+            await db.User.create({
+                rut: u.rut,
+                nombre: u.nombre,
+                correo: u.correo,
+                rol: u.rol,
+                contrasena_hash: hashedPassword
+            });
+        }
+        return res.status(201).json({ message: 'Usuarios creados' });
+    } catch (err) {
+        return res.status(500).json({ message: 'Error al crear usuarios', err });
+    }
+};
+
 
 
 const buscarUser = async (req, res) => {
@@ -131,6 +153,7 @@ module.exports = {
     buscarUser,
     actualizarUser,
     eliminarUser,
+    crearUsersBulk,
     login,
     logout
 };

@@ -8,10 +8,13 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [profesionales, setProfesionales] = useState([]);
   const [segs, setSegs] = useState([]);
+  const [modelMetrics, setModelMetrics] = useState(null);
   const [userForm, setUserForm] = useState({ nombre:'', correo:'', contra:'', rol:'paciente', rut:'' });
   const [profForm, setProfForm] = useState({ especialidad:'', user_id:'', fecha_ingreso:'' });
   const [editUserId, setEditUserId] = useState(null);
   const [editProfId, setEditProfId] = useState(null);
+  const [userCsv, setUserCsv] = useState('');
+  const [profCsv, setProfCsv] = useState('');
 
   useEffect(() => {
     const tok = localStorage.getItem('token');
@@ -37,6 +40,12 @@ export default function Admin() {
       setUsers(await uRes.json());
       setProfesionales(await pRes.json());
       setSegs(await sRes.json());
+      try {
+        const mRes = await apiFetch('/categorizador/metrics');
+        if (mRes.ok) setModelMetrics(await mRes.json());
+      } catch (err) {
+        console.error(err);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -106,11 +115,52 @@ export default function Admin() {
     loadAll();
   };
 
+  const parseCsv = (text) => {
+    const lines = text.trim().split(/\n+/);
+    const headers = lines.shift().split(',');
+    return lines.map(l => {
+      const values = l.split(',');
+      const obj = {};
+      headers.forEach((h,i)=>{obj[h.trim()] = values[i]?.trim();});
+      return obj;
+    });
+  };
+
+  const handleUserCsv = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const users = parseCsv(text);
+    await apiFetch('/users/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users })
+    });
+    loadAll();
+  };
+
+  const handleProfCsv = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const profesionales = parseCsv(text);
+    await apiFetch('/profesionales/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profesionales })
+    });
+    loadAll();
+  };
+
   return (
     <div className="container">
       <h1>Panel de Administración</h1>
 
       <h2>Usuarios</h2>
+      <div>
+        <label>Cargar CSV:</label>
+        <input type="file" accept=".csv" onChange={handleUserCsv} />
+      </div>
       <form onSubmit={handleUserSubmit} className="mt-1">
         <input value={userForm.nombre} onChange={e=>setUserForm({ ...userForm, nombre:e.target.value })} placeholder="Nombre" />
         <input value={userForm.correo} onChange={e=>setUserForm({ ...userForm, correo:e.target.value })} placeholder="Correo" />
@@ -155,6 +205,10 @@ export default function Admin() {
       </table>
 
       <h2 className="mt-1">Profesionales</h2>
+      <div>
+        <label>Cargar CSV:</label>
+        <input type="file" accept=".csv" onChange={handleProfCsv} />
+      </div>
       <form onSubmit={handleProfSubmit} className="mt-1">
         <input value={profForm.especialidad} onChange={e=>setProfForm({ ...profForm, especialidad:e.target.value })} placeholder="Especialidad" />
         <input value={profForm.user_id} onChange={e=>setProfForm({ ...profForm, user_id:e.target.value })} placeholder="User RUT" />
@@ -209,6 +263,30 @@ export default function Admin() {
           ))}
         </tbody>
       </table>
+
+      {modelMetrics && (
+        <div className="mt-1">
+          <h2>Métricas de Categorizadores</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Modelo</th>
+                <th>Accuracy</th>
+                <th>F1</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(modelMetrics).map(([name, m]) => (
+                <tr key={name}>
+                  <td>{name}</td>
+                  <td>{m.accuracy}</td>
+                  <td>{m.f1}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <LogoutButton />
     </div>
   );

@@ -9,6 +9,7 @@ const segmentacionesRoutes = require('./segmentacion.routes.js');
 const pwatscoreRoutes = require('./pwatscore.routes.js');
 const atencionesRoutes = require('./atencion.routes.js');
 const investigadorRoutes = require('./investigador.routes.js');
+const categorizadorRoutes = require('./categorizador.routes.js');
 
 module.exports = app => {
     // Configurar las rutas principales
@@ -20,6 +21,7 @@ module.exports = app => {
     app.use('/pwatscore', pwatscoreRoutes);
     app.use('/atenciones', atencionesRoutes);
     app.use('/investigador', investigadorRoutes);
+    app.use('/categorizador', categorizadorRoutes);
     app.use('/', (req, res) => {
         res.status(200).json({ message: 'API principal activa' });
     });
