@@ -8,7 +8,6 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [profesionales, setProfesionales] = useState([]);
   const [segs, setSegs] = useState([]);
-  const [modelMetrics, setModelMetrics] = useState(null);
   const [userForm, setUserForm] = useState({ nombre:'', correo:'', contra:'', rol:'paciente', rut:'' });
   const [profForm, setProfForm] = useState({ especialidad:'', user_id:'', fecha_ingreso:'' });
   const [editUserId, setEditUserId] = useState(null);
@@ -40,12 +39,6 @@ export default function Admin() {
       setUsers(await uRes.json());
       setProfesionales(await pRes.json());
       setSegs(await sRes.json());
-      try {
-        const mRes = await apiFetch('/categorizador/metrics');
-        if (mRes.ok) setModelMetrics(await mRes.json());
-      } catch (err) {
-        console.error(err);
-      }
     } catch (e) {
       console.error(e);
     }
@@ -264,29 +257,6 @@ export default function Admin() {
         </tbody>
       </table>
 
-      {modelMetrics && (
-        <div className="mt-1">
-          <h2>Métricas de Categorizadores</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Modelo</th>
-                <th>Accuracy</th>
-                <th>F1</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(modelMetrics).map(([name, m]) => (
-                <tr key={name}>
-                  <td>{name}</td>
-                  <td>{m.accuracy}</td>
-                  <td>{m.f1}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
       <LogoutButton />
     </div>
   );

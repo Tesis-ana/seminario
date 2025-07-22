@@ -106,9 +106,9 @@ const eliminarUser = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    const { correo, contra } = req.body;
+    const { rut, contra } = req.body;
     try {
-        const user = await db.User.findOne({ where: { correo } });
+        const user = await db.User.findOne({ where: { rut } });
         if (!user) {
             return res.status(404).json({ message: "Usuario no encontrado." });
         }

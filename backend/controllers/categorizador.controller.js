@@ -5,7 +5,16 @@ const { spawnSync } = require('child_process');
 const modelsDir = path.join(__dirname, '..', '..', 'categorizador', 'modelos');
 const script = path.join(__dirname, '..', '..', 'categorizador', 'eval_metrics.py');
 
+function checkRole(req, res) {
+  if (req.user?.rol !== 'investigador' && req.user?.rol !== 'admin') {
+    res.status(403).json({ message: 'Acceso denegado' });
+    return false;
+  }
+  return true;
+}
+
 function evaluate(req, res) {
+  if (!checkRole(req, res)) return;
   try {
     if (!fs.existsSync(modelsDir)) {
       return res.status(404).json({ message: 'Carpeta de modelos no encontrada' });

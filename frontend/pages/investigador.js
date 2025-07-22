@@ -6,6 +6,7 @@ import LogoutButton from '../components/LogoutButton';
 export default function Investigador() {
   const router = useRouter();
   const [metrics, setMetrics] = useState(null);
+  const [catMetrics, setCatMetrics] = useState(null);
   const [form, setForm] = useState({ learning_rate: '', epochs: '' });
   const [message, setMessage] = useState('');
 
@@ -29,6 +30,12 @@ export default function Investigador() {
       if (res.ok) setMetrics(await res.json());
     } catch (e) {
       console.error(e);
+    }
+    try {
+      const res = await apiFetch('/categorizador/metrics');
+      if (res.ok) setCatMetrics(await res.json());
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -61,6 +68,29 @@ export default function Investigador() {
           <p><strong>IoU:</strong> {metrics.iou}</p>
           <p><strong>Spearman:</strong> {metrics.spearman}</p>
           <p><strong>Actualizado:</strong> {metrics.updated_at}</p>
+        </div>
+      )}
+      {catMetrics && (
+        <div className="mt-1">
+          <h2>Métricas de Categorizadores</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Modelo</th>
+                <th>Accuracy</th>
+                <th>F1</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(catMetrics).map(([name, m]) => (
+                <tr key={name}>
+                  <td>{name}</td>
+                  <td>{m.accuracy}</td>
+                  <td>{m.f1}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       <form onSubmit={handleRetrain} className="mt-1">
