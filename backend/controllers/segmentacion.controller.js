@@ -193,7 +193,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
 
         return res.status(201).json({
             message: 'Segmentación automática creada correctamente.',
-            segmentacionId: segmentacion.imagen_id,
+            segmentacionId: segmentacion.id,
         });
     } catch (err) {
         // Un único catch para errores de spawn o de BD
