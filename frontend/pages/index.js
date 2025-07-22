@@ -22,6 +22,8 @@ export default function Home() {
         router.push('/paciente');
       } else if (rol === 'admin') {
         router.push('/admin');
+      } else if (rol === 'investigador') {
+        router.push('/investigador');
       }
     } catch (e) {
       console.error('Error decoding token', e);
