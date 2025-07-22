@@ -58,7 +58,13 @@ export default function Home() {
       setError(err.message);
     }
   };
-
+  const formatRut = (valor) => {
+    const limpio = valor.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (limpio.length <= 1) return limpio;
+    const cuerpo = limpio.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const dv = limpio.slice(-1);
+    return `${cuerpo}-${dv}`;
+  };
   if (!token) {
     return (
       <div className="container">
@@ -66,7 +72,7 @@ export default function Home() {
         <form onSubmit={handleSubmit}>
           <div>
             <label>RUT:</label>
-            <input value={rut} onChange={(e) => setRut(e.target.value)} />
+            <input value={rut} maxLength={12} onChange={(e) => setRut(formatRut(e.target.value))} />
           </div>
           <div>
             <label>Contraseña:</label>
