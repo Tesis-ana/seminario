@@ -61,37 +61,41 @@ export default function Home() {
 
   if (!token) {
     return (
-      <div className="container">
-        <h1>Login</h1>
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label>RUT:</label>
-            <input value={rut} onChange={(e) => setRut(e.target.value)} />
-          </div>
-          <div>
-            <label>Contraseña:</label>
-            <input type="password" value={contra} onChange={(e) => setContra(e.target.value)} />
-          </div>
-          <button type="submit">Ingresar</button>
-        </form>
-        {error && <p style={{color:'red'}}>{error}</p>}
+      <div className="login-page">
+        <div className="glass-card">
+          <h1>Iniciar sesión</h1>
+          <form onSubmit={handleSubmit}>
+            <div>
+              <label>RUT:</label>
+              <input value={rut} onChange={(e) => setRut(e.target.value)} />
+            </div>
+            <div>
+              <label>Contraseña:</label>
+              <input type="password" value={contra} onChange={(e) => setContra(e.target.value)} />
+            </div>
+            <button type="submit">Ingresar</button>
+          </form>
+          {error && <p className="error">{error}</p>}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <h1>Bienvenido</h1>
-      <p>
-        <a href="/consultas">Ir a consultas</a>
-      </p>
-      <p>
-        <a href="/pwatscore">Calcular PWATScore</a>
-      </p>
-      <p>
-        <a href="/paciente">Mis Imágenes</a>
-      </p>
-      <LogoutButton />
+    <div className="login-page">
+      <div className="glass-card">
+        <h1>Bienvenido</h1>
+        <p>
+          <a href="/consultas">Ir a consultas</a>
+        </p>
+        <p>
+          <a href="/pwatscore">Calcular PWATScore</a>
+        </p>
+        <p>
+          <a href="/paciente">Mis Imágenes</a>
+        </p>
+        <LogoutButton />
+      </div>
     </div>
   );
 }
