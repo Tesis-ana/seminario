@@ -59,42 +59,50 @@ export default function Home() {
     }
   };
 
-  if (!token) {
-    return (
+  return (
+    <div className="auth-container">
+      <header className="app-header">
+        <h1>WoundNetB7 AI</h1>
+        <p>Sistema Inteligente de Gestión de Úlceras de Pie Diabético</p>
+      </header>
       <div className="login-page">
         <div className="glass-card">
-          <h1>Iniciar sesión</h1>
-          <form onSubmit={handleSubmit}>
-            <div>
-              <label>RUT:</label>
-              <input value={rut} onChange={(e) => setRut(e.target.value)} />
-            </div>
-            <div>
-              <label>Contraseña:</label>
-              <input type="password" value={contra} onChange={(e) => setContra(e.target.value)} />
-            </div>
-            <button type="submit">Ingresar</button>
-          </form>
-          {error && <p className="error">{error}</p>}
+          {!token ? (
+            <>
+              <h1>Iniciar sesión</h1>
+              <form onSubmit={handleSubmit}>
+                <div>
+                  <label>RUT:</label>
+                  <input value={rut} onChange={(e) => setRut(e.target.value)} />
+                </div>
+                <div>
+                  <label>Contraseña:</label>
+                  <input
+                    type="password"
+                    value={contra}
+                    onChange={(e) => setContra(e.target.value)}
+                  />
+                </div>
+                <button type="submit">Ingresar</button>
+              </form>
+              {error && <p className="error">{error}</p>}
+            </>
+          ) : (
+            <>
+              <h1>Bienvenido</h1>
+              <p>
+                <a href="/consultas">Ir a consultas</a>
+              </p>
+              <p>
+                <a href="/pwatscore">Calcular PWATScore</a>
+              </p>
+              <p>
+                <a href="/paciente">Mis Imágenes</a>
+              </p>
+              <LogoutButton />
+            </>
+          )}
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="login-page">
-      <div className="glass-card">
-        <h1>Bienvenido</h1>
-        <p>
-          <a href="/consultas">Ir a consultas</a>
-        </p>
-        <p>
-          <a href="/pwatscore">Calcular PWATScore</a>
-        </p>
-        <p>
-          <a href="/paciente">Mis Imágenes</a>
-        </p>
-        <LogoutButton />
       </div>
     </div>
   );
