@@ -12,3 +12,11 @@ template.out
 template.pdf
 template.synctex.gz
 template.toc
+categorizador/best_model.keras
+categorizador/Categoria3.pkl
+categorizador/Categoria4.joblib
+categorizador/Categoria5.joblib
+categorizador/Categoria6.pkl
+categorizador/Categoria7.joblib
+categorizador/Categoria8.joblib
+backend/environment.yml
