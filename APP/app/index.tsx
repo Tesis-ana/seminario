@@ -1,10 +1,7 @@
-import { useEffect } from 'react';
-import { router } from 'expo-router';
+import ProfessionalHome from './professional';
 
-export default function HomeRedirect() {
-  useEffect(() => {
-    router.replace('/professional');
-  }, []);
-
-  return null;
+// Renderizar directamente la pantalla principal para profesionales
+// para que al iniciar la aplicación se muestre la búsqueda de pacientes.
+export default function AppIndex() {
+  return <ProfessionalHome />;
 }
