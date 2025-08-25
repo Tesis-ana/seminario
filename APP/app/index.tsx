@@ -58,6 +58,13 @@ export default function HomeScreen() {
         <TouchableOpacity style={[styles.button, styles.cameraButton]} onPress={() => pickImage("camera")}>
           <Text style={styles.buttonText}>Tomar Foto</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.professionalButton]}
+          onPress={() => router.push("/professional")}
+        >
+          <Text style={styles.buttonText}>Modo Profesional</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.infoContainer}>
@@ -108,6 +115,9 @@ const styles = StyleSheet.create({
   },
   cameraButton: {
     backgroundColor: "#50c878",
+  },
+  professionalButton: {
+    backgroundColor: "#6c5ce7",
   },
   buttonText: {
     color: "white",

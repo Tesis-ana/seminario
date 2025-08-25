@@ -38,6 +38,10 @@ export default function RootLayout() {
             presentation: "fullScreenModal",
           }}
         />
+        <Stack.Screen name="professional/index" options={{ title: 'Profesional' }} />
+        <Stack.Screen name="professional/patient/[id]/index" options={{ title: 'Paciente' }} />
+        <Stack.Screen name="professional/patient/[id]/new-consultation" options={{ title: 'Registrar Consulta' }} />
+        <Stack.Screen name="professional/patient/[id]/upload-image" options={{ title: 'Imagen y PWAT' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </View>
