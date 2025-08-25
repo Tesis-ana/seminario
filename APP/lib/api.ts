@@ -1,21 +1,4 @@
-const API_URL = 'https://api.ejemplo.cl'
-const TOKEN = 'REPLACE_WITH_TOKEN'
-
-async function apiFetch(path: string, options: RequestInit = {}) {
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string>),
-    Authorization: `Bearer ${TOKEN}`,
-  }
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json'
-  }
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
-  if (!res.ok) {
-    const message = await res.text()
-    throw new Error(message || 'API request failed')
-  }
-  return res.json()
-}
+// Mock API for professional workflows
 
 export interface User {
   rut: string
@@ -45,93 +28,118 @@ export interface Imagen {
   paciente_id: number
 }
 
-export async function getMyProfessional(): Promise<Profesional> {
-  return apiFetch('/profesionales/me')
+const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const professional: Profesional = {
+  id: 1,
+  especialidad: 'Dermatología',
+  user_id: 1,
+  fecha_ingreso: '2024-01-01',
 }
 
-export async function getPatientsForProfessional(id: number): Promise<Paciente[]> {
-  return apiFetch(`/pacientes/profesional/${id}`)
+const patients: Paciente[] = [
+  {
+    id: 1,
+    fecha_ingreso: '2024-05-10',
+    comentarios: '',
+    user: {
+      rut: '11111111-1',
+      nombre: 'Juan Pérez',
+      correo: 'juan@example.com',
+      rol: 'paciente',
+    },
+  },
+  {
+    id: 2,
+    fecha_ingreso: '2024-05-15',
+    comentarios: '',
+    user: {
+      rut: '22222222-2',
+      nombre: 'María González',
+      correo: 'maria@example.com',
+      rol: 'paciente',
+    },
+  },
+]
+
+let images: Imagen[] = []
+let imageSeq = 1
+let segmentSeq = 1
+let pwatSeq = 1
+
+export async function getMyProfessional(): Promise<Profesional> {
+  await delay()
+  return professional
+}
+
+export async function getPatientsForProfessional(_id: number): Promise<Paciente[]> {
+  await delay()
+  return patients
 }
 
 export async function searchPatientByRut(rut: string): Promise<Paciente> {
-  return apiFetch('/pacientes/buscar-rut', {
-    method: 'POST',
-    body: JSON.stringify({ rut }),
-  })
+  await delay()
+  const found = patients.find((p) => p.user.rut === rut)
+  if (!found) {
+    throw new Error('Paciente no encontrado')
+  }
+  return found
 }
 
 export async function registerAttention(
-  paciente_id: number,
-  profesional_id: number
+  _paciente_id: number,
+  _profesional_id: number
 ) {
-  return apiFetch('/atenciones', {
-    method: 'POST',
-    body: JSON.stringify({ paciente_id, profesional_id }),
-  })
+  await delay()
+  return { message: 'Atención registrada' }
 }
 
 export async function getImagesForPatient(id: number): Promise<Imagen[]> {
-  return apiFetch(`/imagenes/paciente/${id}`)
+  await delay()
+  return images.filter((img) => img.paciente_id === id)
 }
 
 export async function uploadPatientImage(
   pacienteId: number,
-  imageUri: string
+  _imageUri: string
 ): Promise<Imagen> {
-  const form = new FormData()
-  form.append('id', String(pacienteId))
-  form.append('imagen', {
-    uri: imageUri,
-    name: 'photo.jpg',
-    type: 'image/jpeg',
-  } as any)
-
-  const res = await fetch(`${API_URL}/imagenes`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}` },
-    body: form,
-  })
-  if (!res.ok) {
-    const message = await res.text()
-    throw new Error(message || 'Image upload failed')
+  await delay()
+  const img: Imagen = {
+    id: imageSeq++,
+    nombre_archivo: `img_${Date.now()}.jpg`,
+    fecha_captura: new Date().toISOString().split('T')[0],
+    paciente_id: pacienteId,
   }
-  return res.json()
+  images.push(img)
+  return img
 }
 
 export async function createManualSegmentation(
-  imageId: number,
-  maskUri: string
+  _imageId: number,
+  _maskUri: string
 ) {
-  const form = new FormData()
-  form.append('id', String(imageId))
-  form.append('imagen', {
-    uri: maskUri,
-    name: 'mask.png',
-    type: 'image/png',
-  } as any)
+  await delay()
+  return { message: 'Segmentación creada', segmentacionId: segmentSeq++ }
+}
 
-  const res = await fetch(`${API_URL}/segmentaciones/manual`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${TOKEN}` },
-    body: form,
-  })
-  if (!res.ok) {
-    const message = await res.text()
-    throw new Error(message || 'Segmentation failed')
+export async function createAutomaticSegmentation(_imageId: number) {
+  await delay()
+  return { message: 'Segmentación generada', segmentacionId: segmentSeq++ }
+}
+
+export async function calculatePwatscore(_imageId: number) {
+  await delay()
+  return {
+    message: 'PWATScore generado',
+    pwatscoreId: pwatSeq++,
+    categorias: {
+      cat3: 1,
+      cat4: 2,
+      cat5: 3,
+      cat6: 4,
+      cat7: 5,
+      cat8: 6,
+    },
   }
-  return res.json()
 }
 
-export async function createAutomaticSegmentation(imageId: number) {
-  return apiFetch('/segmentaciones/automatico', {
-    method: 'POST',
-    body: JSON.stringify({ id: imageId }),
-  })
-}
-
-export async function calculatePwatscore(imageId: number) {
-  return apiFetch('/pwatscore', {
-    method: 'POST',
-    body: JSON.stringify({ id: imageId }),
-  })
-}
