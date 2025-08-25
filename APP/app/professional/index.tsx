@@ -1,32 +1,54 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-
-const ATTENDED_PATIENTS = [
-  { id: '1', name: 'Juan Pérez', lastVisit: '2024-01-10' },
-  { id: '2', name: 'María López', lastVisit: '2024-02-05' },
-  { id: '3', name: 'Ana García', lastVisit: '2024-03-12' },
-];
+import { useEffect, useState } from 'react'
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native'
+import { router } from 'expo-router'
+import {
+  getMyProfessional,
+  getPatientsForProfessional,
+  Paciente,
+} from '@/lib/api'
 
 export default function MyPatients() {
+  const [patients, setPatients] = useState<Paciente[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const prof = await getMyProfessional()
+        const list = await getPatientsForProfessional(prof.id)
+        setPatients(list)
+      } catch (error) {
+        console.error('Error fetching patients', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Mis Pacientes</Text>
-      <FlatList
-        data={ATTENDED_PATIENTS}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => router.push(`/professional/patient/${item.id}`)}
-          >
-            <Text style={styles.itemText}>{item.name}</Text>
-            <Text style={styles.itemSub}>Última consulta: {item.lastVisit}</Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>No hay pacientes</Text>}
-      />
+      {loading ? (
+        <Text>Cargando...</Text>
+      ) : (
+        <FlatList
+          data={patients}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.item}
+              onPress={() => router.push(`/professional/patient/${item.id}`)}
+            >
+              <Text style={styles.itemText}>{item.user.nombre}</Text>
+              <Text style={styles.itemSub}>{item.user.rut}</Text>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={<Text style={styles.empty}>No hay pacientes</Text>}
+        />
+      )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({

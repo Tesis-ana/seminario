@@ -1,46 +1,55 @@
-import { useState } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-
-// Datos de ejemplo para mostrar pacientes
-const MOCK_PATIENTS = [
-  { id: '1', name: 'Juan Pérez', rut: '11111111-1' },
-  { id: '2', name: 'María López', rut: '22222222-2' },
-  { id: '3', name: 'Ana García', rut: '33333333-3' },
-];
+import { useState } from 'react'
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native'
+import { router } from 'expo-router'
+import { searchPatientByRut, Paciente } from '@/lib/api'
 
 export default function SearchPatients() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('')
+  const [result, setResult] = useState<Paciente | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const filtered = MOCK_PATIENTS.filter((p) =>
-    p.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const handleSearch = async () => {
+    try {
+      const patient = await searchPatientByRut(query)
+      setResult(patient)
+      setError(null)
+    } catch (e) {
+      console.error(e)
+      setResult(null)
+      setError('Paciente no encontrado')
+    }
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Buscar Pacientes</Text>
+      <Text style={styles.title}>Buscar Paciente por RUT</Text>
       <TextInput
         style={styles.input}
-        placeholder="Nombre del paciente"
+        placeholder="Ingrese RUT"
         value={query}
         onChangeText={setQuery}
       />
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => router.push(`/professional/patient/${item.id}`)}
-          >
-            <Text style={styles.itemText}>{item.name}</Text>
-            <Text style={styles.itemSub}>{item.rut}</Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>Sin pacientes</Text>}
-      />
+      <TouchableOpacity style={styles.button} onPress={handleSearch}>
+        <Text style={styles.buttonText}>Buscar</Text>
+      </TouchableOpacity>
+      {result && (
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => router.push(`/professional/patient/${result.id}`)}
+        >
+          <Text style={styles.itemText}>{result.user.nombre}</Text>
+          <Text style={styles.itemSub}>{result.user.rut}</Text>
+        </TouchableOpacity>
+      )}
+      {error && <Text style={styles.empty}>{error}</Text>}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -53,6 +62,14 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 16,
   },
+  button: {
+    backgroundColor: '#4a90e2',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  buttonText: { color: '#fff', fontWeight: '600' },
   item: {
     padding: 12,
     borderBottomWidth: 1,

@@ -1,15 +1,23 @@
-import { useLocalSearchParams, router } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useState } from 'react';
+import { useLocalSearchParams, router } from 'expo-router'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { useState } from 'react'
+import { getMyProfessional, registerAttention } from '@/lib/api'
 
 export default function NewConsultation() {
-  const { id } = useLocalSearchParams();
-  const [notes, setNotes] = useState('');
+  const { id } = useLocalSearchParams()
+  const [notes, setNotes] = useState('')
 
-  const handleSave = () => {
-    Alert.alert('Consulta registrada', `Paciente ${id}`);
-    router.back();
-  };
+  const handleSave = async () => {
+    try {
+      const prof = await getMyProfessional()
+      await registerAttention(Number(id), prof.id)
+      Alert.alert('Consulta registrada')
+      router.back()
+    } catch (e) {
+      console.error(e)
+      Alert.alert('Error', 'No se pudo registrar la consulta')
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -25,7 +33,7 @@ export default function NewConsultation() {
         <Text style={styles.buttonText}>Guardar</Text>
       </TouchableOpacity>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -47,5 +55,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontWeight: '600' },
-});
+})
 

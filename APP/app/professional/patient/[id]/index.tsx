@@ -1,36 +1,47 @@
-import { useLocalSearchParams } from 'expo-router';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { useState } from 'react';
-
-interface Consultation {
-  id: string;
-  date: string;
-  notes: string;
-}
+import { useLocalSearchParams } from 'expo-router'
+import { View, Text, FlatList, StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { getImagesForPatient, Imagen } from '@/lib/api'
 
 export default function PatientDetail() {
-  const { id } = useLocalSearchParams();
-  const [consultations] = useState<Consultation[]>([
-    { id: 'c1', date: '2024-01-01', notes: 'Consulta inicial' },
-    { id: 'c2', date: '2024-02-15', notes: 'Control mensual' },
-  ]);
+  const { id } = useLocalSearchParams()
+  const [images, setImages] = useState<Imagen[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getImagesForPatient(Number(id))
+        setImages(data)
+      } catch (e) {
+        console.error('Error loading images', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [id])
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Paciente {id}</Text>
-      <FlatList
-        data={consultations}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.date}>{item.date}</Text>
-            <Text style={styles.notes}>{item.notes}</Text>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>Sin consultas</Text>}
-      />
+      {loading ? (
+        <Text>Cargando...</Text>
+      ) : (
+        <FlatList
+          data={images}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <View style={styles.row}>
+              <Text style={styles.date}>{item.fecha_captura}</Text>
+              <Text style={styles.notes}>{item.nombre_archivo}</Text>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={styles.empty}>Sin consultas</Text>}
+        />
+      )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
