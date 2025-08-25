@@ -1,5 +1,5 @@
-import { useLocalSearchParams, router } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useState } from 'react';
 
 interface Consultation {
@@ -29,20 +29,6 @@ export default function PatientDetail() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>Sin consultas</Text>}
       />
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push(`/professional/patient/${id}/new-consultation`)}
-        >
-          <Text style={styles.buttonText}>Registrar Consulta</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push(`/professional/patient/${id}/upload-image`)}
-        >
-          <Text style={styles.buttonText}>Subir Imagen</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -60,14 +46,5 @@ const styles = StyleSheet.create({
   date: { fontWeight: '500' },
   notes: { flex: 1, marginLeft: 8 },
   empty: { textAlign: 'center', marginTop: 20, color: '#888' },
-  buttonRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  button: {
-    flex: 1,
-    backgroundColor: '#4a90e2',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
 });
 
