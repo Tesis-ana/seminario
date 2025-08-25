@@ -38,7 +38,7 @@ export default function RootLayout() {
             presentation: "fullScreenModal",
           }}
         />
-        <Stack.Screen name="professional/index" options={{ title: 'Profesional' }} />
+        <Stack.Screen name="professional" options={{ headerShown: false }} />
         <Stack.Screen
           name="professional/patient/[id]"
           options={{ headerShown: false }}

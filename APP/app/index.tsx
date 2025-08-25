@@ -1,7 +1,6 @@
-import ProfessionalHome from './professional';
+import { Redirect } from 'expo-router';
 
-// Renderizar directamente la pantalla principal para profesionales
-// para que al iniciar la aplicación se muestre la búsqueda de pacientes.
+// Redirige al flujo de profesionales mostrando inicialmente "Mis Pacientes".
 export default function AppIndex() {
-  return <ProfessionalHome />;
+  return <Redirect href="/professional" />;
 }
