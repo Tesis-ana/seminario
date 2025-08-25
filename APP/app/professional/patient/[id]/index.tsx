@@ -1,20 +1,20 @@
 import { useLocalSearchParams } from 'expo-router'
 import { View, Text, FlatList, StyleSheet } from 'react-native'
 import { useEffect, useState } from 'react'
-import { getImagesForPatient, Imagen } from '@/lib/api'
+import { getConsultationsForPatient, Consulta } from '@/lib/api'
 
 export default function PatientDetail() {
   const { id } = useLocalSearchParams()
-  const [images, setImages] = useState<Imagen[]>([])
+  const [consultations, setConsultations] = useState<Consulta[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getImagesForPatient(Number(id))
-        setImages(data)
+        const data = await getConsultationsForPatient(Number(id))
+        setConsultations(data)
       } catch (e) {
-        console.error('Error loading images', e)
+        console.error('Error loading consultations', e)
       } finally {
         setLoading(false)
       }
@@ -29,12 +29,12 @@ export default function PatientDetail() {
         <Text>Cargando...</Text>
       ) : (
         <FlatList
-          data={images}
+          data={consultations}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Text style={styles.date}>{item.fecha_captura}</Text>
-              <Text style={styles.notes}>{item.nombre_archivo}</Text>
+              <Text style={styles.date}>{item.fecha}</Text>
+              <Text style={styles.notes}>{item.notas}</Text>
             </View>
           )}
           ListEmptyComponent={<Text style={styles.empty}>Sin consultas</Text>}

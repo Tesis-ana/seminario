@@ -28,6 +28,14 @@ export interface Imagen {
   paciente_id: number
 }
 
+export interface Consulta {
+  id: number
+  paciente_id: number
+  profesional_id: number
+  fecha: string
+  notas: string
+}
+
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const professional: Profesional = {
@@ -64,6 +72,23 @@ const patients: Paciente[] = [
 
 let images: Imagen[] = []
 let imageSeq = 1
+let consultations: Consulta[] = [
+  {
+    id: 1,
+    paciente_id: 1,
+    profesional_id: 1,
+    fecha: '2024-06-01',
+    notas: 'Control inicial',
+  },
+  {
+    id: 2,
+    paciente_id: 1,
+    profesional_id: 1,
+    fecha: '2024-06-15',
+    notas: 'Seguimiento',
+  },
+]
+let consultationSeq = consultations.length + 1
 let segmentSeq = 1
 let pwatSeq = 1
 
@@ -87,11 +112,26 @@ export async function searchPatientByRut(rut: string): Promise<Paciente> {
 }
 
 export async function registerAttention(
-  _paciente_id: number,
-  _profesional_id: number
+  paciente_id: number,
+  profesional_id: number,
+  notas: string
 ) {
   await delay()
+  consultations.push({
+    id: consultationSeq++,
+    paciente_id,
+    profesional_id,
+    fecha: new Date().toISOString().split('T')[0],
+    notas,
+  })
   return { message: 'Atención registrada' }
+}
+
+export async function getConsultationsForPatient(
+  id: number
+): Promise<Consulta[]> {
+  await delay()
+  return consultations.filter((c) => c.paciente_id === id)
 }
 
 export async function getImagesForPatient(id: number): Promise<Imagen[]> {

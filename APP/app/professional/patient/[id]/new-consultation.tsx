@@ -10,7 +10,7 @@ export default function NewConsultation() {
   const handleSave = async () => {
     try {
       const prof = await getMyProfessional()
-      await registerAttention(Number(id), prof.id)
+      await registerAttention(Number(id), prof.id, notes)
       Alert.alert('Consulta registrada')
       router.back()
     } catch (e) {
