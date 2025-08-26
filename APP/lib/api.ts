@@ -1,5 +1,3 @@
-// Mock API for professional workflows
-
 export interface User {
   rut: string
   nombre: string
@@ -36,79 +34,39 @@ export interface Consulta {
   notas: string
 }
 
-const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms))
+const API_URL = 'https://api.ejemplo.cl'
+// TODO: replace with secure token retrieval
+const TOKEN = 'TOKEN'
 
-const professional: Profesional = {
-  id: 1,
-  especialidad: 'Dermatología',
-  user_id: 1,
-  fecha_ingreso: '2024-01-01',
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`,
+      ...(options.headers || {}),
+    },
+  })
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message || res.statusText)
+  }
+  return res.json() as Promise<T>
 }
-
-const patients: Paciente[] = [
-  {
-    id: 1,
-    fecha_ingreso: '2024-05-10',
-    comentarios: '',
-    user: {
-      rut: '11111111-1',
-      nombre: 'Juan Pérez',
-      correo: 'juan@example.com',
-      rol: 'paciente',
-    },
-  },
-  {
-    id: 2,
-    fecha_ingreso: '2024-05-15',
-    comentarios: '',
-    user: {
-      rut: '22222222-2',
-      nombre: 'María González',
-      correo: 'maria@example.com',
-      rol: 'paciente',
-    },
-  },
-]
-
-let images: Imagen[] = []
-let imageSeq = 1
-let consultations: Consulta[] = [
-  {
-    id: 1,
-    paciente_id: 1,
-    profesional_id: 1,
-    fecha: '2024-06-01',
-    notas: 'Control inicial',
-  },
-  {
-    id: 2,
-    paciente_id: 1,
-    profesional_id: 1,
-    fecha: '2024-06-15',
-    notas: 'Seguimiento',
-  },
-]
-let consultationSeq = consultations.length + 1
-let segmentSeq = 1
-let pwatSeq = 1
 
 export async function getMyProfessional(): Promise<Profesional> {
-  await delay()
-  return professional
+  return request('/profesionales/me')
 }
 
-export async function getPatientsForProfessional(_id: number): Promise<Paciente[]> {
-  await delay()
-  return patients
+export async function getPatientsForProfessional(id: number): Promise<Paciente[]> {
+  return request(`/pacientes/profesional/${id}`)
 }
 
 export async function searchPatientByRut(rut: string): Promise<Paciente> {
-  await delay()
-  const found = patients.find((p) => p.user.rut === rut)
-  if (!found) {
-    throw new Error('Paciente no encontrado')
-  }
-  return found
+  return request('/pacientes/buscar-rut', {
+    method: 'POST',
+    body: JSON.stringify({ rut }),
+  })
 }
 
 export async function registerAttention(
@@ -116,70 +74,80 @@ export async function registerAttention(
   profesional_id: number,
   notas: string
 ) {
-  await delay()
-  consultations.push({
-    id: consultationSeq++,
-    paciente_id,
-    profesional_id,
-    fecha: new Date().toISOString().split('T')[0],
-    notas,
+  return request('/atenciones', {
+    method: 'POST',
+    body: JSON.stringify({ paciente_id, profesional_id, notas }),
   })
-  return { message: 'Atención registrada' }
 }
 
-export async function getConsultationsForPatient(
-  id: number
-): Promise<Consulta[]> {
-  await delay()
-  return consultations.filter((c) => c.paciente_id === id)
+export async function getConsultationsForPatient(id: number): Promise<Consulta[]> {
+  return request(`/pacientes/${id}/consultas`)
 }
 
 export async function getImagesForPatient(id: number): Promise<Imagen[]> {
-  await delay()
-  return images.filter((img) => img.paciente_id === id)
+  return request(`/imagenes/paciente/${id}`)
 }
 
 export async function uploadPatientImage(
   pacienteId: number,
-  _imageUri: string
+  imageUri: string
 ): Promise<Imagen> {
-  await delay()
-  const img: Imagen = {
-    id: imageSeq++,
-    nombre_archivo: `img_${Date.now()}.jpg`,
-    fecha_captura: new Date().toISOString().split('T')[0],
-    paciente_id: pacienteId,
+  const formData = new FormData()
+  formData.append('id', String(pacienteId))
+  formData.append('imagen', {
+    uri: imageUri,
+    name: 'photo.jpg',
+    type: 'image/jpeg',
+  } as any)
+  const res = await fetch(`${API_URL}/imagenes`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+    },
+    body: formData,
+  })
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message || res.statusText)
   }
-  images.push(img)
-  return img
+  return res.json()
 }
 
 export async function createManualSegmentation(
-  _imageId: number,
-  _maskUri: string
+  imageId: number,
+  maskUri: string
 ) {
-  await delay()
-  return { message: 'Segmentación creada', segmentacionId: segmentSeq++ }
-}
-
-export async function createAutomaticSegmentation(_imageId: number) {
-  await delay()
-  return { message: 'Segmentación generada', segmentacionId: segmentSeq++ }
-}
-
-export async function calculatePwatscore(_imageId: number) {
-  await delay()
-  return {
-    message: 'PWATScore generado',
-    pwatscoreId: pwatSeq++,
-    categorias: {
-      cat3: 1,
-      cat4: 2,
-      cat5: 3,
-      cat6: 4,
-      cat7: 5,
-      cat8: 6,
+  const formData = new FormData()
+  formData.append('id', String(imageId))
+  formData.append('imagen', {
+    uri: maskUri,
+    name: 'mask.jpg',
+    type: 'image/jpeg',
+  } as any)
+  const res = await fetch(`${API_URL}/segmentaciones/manual`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
     },
+    body: formData,
+  })
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message || res.statusText)
   }
+  return res.json()
 }
 
+export async function createAutomaticSegmentation(imageId: number) {
+  return request('/segmentaciones/automatico', {
+    method: 'POST',
+    body: JSON.stringify({ id: imageId }),
+  })
+}
+
+export async function calculatePwatscore(imageId: number) {
+  return request('/pwatscore', {
+    method: 'POST',
+    body: JSON.stringify({ id: imageId }),
+  })
+}
