@@ -13,5 +13,9 @@
             "database": "wound_assessment",
             "username": "root"
         }
-    ]
+    ],
+    "sonarlint.connectedMode.project": {
+        "connectionId": "tesis-ana",
+        "projectKey": "Tesis-ana_seminario"
+    }
 }
