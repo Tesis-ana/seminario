@@ -1,13 +1,8 @@
-import { useState } from 'react'
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native'
+﻿import { useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { searchPatientByRut, Paciente } from '@/lib/api'
+import { AppHeader, Card, layoutStyles } from '@/components/ui'
 
 export default function SearchPatients() {
   const [query, setQuery] = useState('')
@@ -27,56 +22,24 @@ export default function SearchPatients() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Buscar Paciente por RUT</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ingrese RUT"
-        value={query}
-        onChangeText={setQuery}
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSearch}>
-        <Text style={styles.buttonText}>Buscar</Text>
-      </TouchableOpacity>
-      {result && (
-        <TouchableOpacity
-          style={styles.item}
-          onPress={() => router.push(`/professional/patient/${result.id}`)}
-        >
-          <Text style={styles.itemText}>{result.user.nombre}</Text>
-          <Text style={styles.itemSub}>{result.user.rut}</Text>
-        </TouchableOpacity>
-      )}
-      {error && <Text style={styles.empty}>{error}</Text>}
+    <View style={layoutStyles.container}>
+      <AppHeader title="WoundNetB7 AI" subtitle="Buscar" />
+      <View style={layoutStyles.body}>
+        <Card>
+          <Text style={{ fontWeight: '700', marginBottom: 8 }}>Buscar Paciente por RUT</Text>
+          <TextInput style={{ borderWidth:1, borderColor:'#e5e7eb', borderRadius:8, padding:8, marginBottom:12 }} placeholder="Ingrese RUT" value={query} onChangeText={setQuery} />
+          <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:10, borderRadius:8, alignItems:'center', marginBottom:12 }} onPress={handleSearch}>
+            <Text style={{ color:'#fff', fontWeight:'600' }}>Buscar</Text>
+          </TouchableOpacity>
+          {result && (
+            <TouchableOpacity style={{ paddingVertical: 12, borderTopWidth:1, borderColor:'#eef2f7' }} onPress={() => router.push(`/professional/patient/${result.id}`)}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>{result.user.nombre}</Text>
+              <Text style={{ fontSize: 12, color: '#6b7280' }}>{result.user.rut}</Text>
+            </TouchableOpacity>
+          )}
+          {error && <Text style={{ color:'#ef4444' }}>{error}</Text>}
+        </Card>
+      </View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#4a90e2',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  item: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  itemText: { fontSize: 16, fontWeight: '500' },
-  itemSub: { fontSize: 12, color: '#666' },
-  empty: { textAlign: 'center', marginTop: 20, color: '#888' },
-});
-

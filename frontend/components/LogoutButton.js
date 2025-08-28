@@ -1,4 +1,4 @@
-import { useRouter } from 'next/router';
+﻿import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
 
 export default function LogoutButton() {
@@ -25,6 +25,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <button onClick={handleLogout}>Cerrar sesión</button>
+    <button onClick={handleLogout}>Cerrar sesion</button>
   );
 }
+

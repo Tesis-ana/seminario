@@ -20,3 +20,7 @@ categorizador/Categoria6.pkl
 categorizador/Categoria7.joblib
 categorizador/Categoria8.joblib
 backend/environment.yml
+APP/.idea/deviceManager.xml
+APP/.idea/vcs.xml
+APP/.idea/caches/deviceStreaming.xml
+APP/.idea/workspace.xml

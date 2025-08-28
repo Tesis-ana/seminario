@@ -34,9 +34,9 @@ export interface Consulta {
   notas: string
 }
 
-const API_URL = 'https://api.ejemplo.cl'
+const API_URL = 'http://192.168.1.91:5000'
 // TODO: replace with secure token retrieval
-const TOKEN = 'TOKEN'
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTYyMzMxNDIsImV4cCI6MTc1NjMxOTU0Mn0.sV9CXqLmwnmzwiEA9h6n-r48UsSrig8W8CYVxDd6xuM'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {

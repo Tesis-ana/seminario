@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
 import LogoutButton from '../components/LogoutButton';
 import { CAT_INFO } from '../lib/categorias';
+import Layout from '../components/Layout';
 
 export default function Paciente() {
   const router = useRouter();
@@ -28,10 +29,7 @@ export default function Paciente() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      router.replace('/');
-      return;
-    }
+    if (!token) { router.replace('/'); return; }
     const fetchData = async () => {
       try {
         const [userRes, pacRes] = await Promise.all([
@@ -58,11 +56,8 @@ export default function Paciente() {
           })
           .sort((a, b) => new Date(b.img.fecha_captura) - new Date(a.img.fecha_captura));
         setImagenes(datos);
-      } catch (err) {
-        setError('Error al cargar datos');
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { setError('Error al cargar datos'); }
+      finally { setLoading(false); }
     };
     fetchData();
   }, [router]);
@@ -71,89 +66,62 @@ export default function Paciente() {
   if (error) return <p style={{color:'red'}}>{error}</p>;
 
   return (
-    <div className="container">
-      <h1>Mis Datos</h1>
-      {userInfo && (
-        <div>
-          <p><strong>RUT:</strong> {userInfo.rut}</p>
-          <p><strong>Nombre:</strong> {userInfo.nombre}</p>
-          <p><strong>Correo:</strong> {userInfo.correo}</p>
-        </div>
-      )}
-      {pacInfo && (
-        <div>
-          <p><strong>Sexo:</strong> {pacInfo.sexo}</p>
-          <p><strong>Ingreso:</strong> {new Date(pacInfo.fecha_ingreso).toLocaleDateString()}</p>
-          <p><strong>Comentarios:</strong> {pacInfo.comentarios}</p>
-        </div>
-      )}
-      <h2 className="mt-1">Mis Imágenes</h2>
-      <table className="mt-1">
-        <thead>
-          <tr>
-            <th>Identificador</th>
-            <th>PWATScore</th>
-            <th>Imagen</th>
-            <th>Mascara</th>
-            {Array.from({ length: 8 }, (_, i) => (
-              <th>{CAT_INFO[i+1]}</th>
-            ))}
-            <th>Fecha de captura</th>
-          </tr>
-        </thead>
-        <tbody>
-          {imagenes.map(({ img, seg, pwa }, index) => {
-            const sum   = pwa
-              ? Array.from({ length: 8 }, (_, i) => pwa[`cat${i + 1}`] ?? 0).reduce((a, b) => a + b, 0)
-              : null;
-            const color = sum !== null
-              ? blendColors('#e6ffe6', '#ffe6e6', sum / 32)
-              : 'transparent';
+    <Layout subtitle="Panel del Paciente" actions={<LogoutButton />}>
+      <div className="card">
+        <div className="section-title">Mis Datos</div>
+        {userInfo && (
+          <div>
+            <p><strong>RUT:</strong> {userInfo.rut}</p>
+            <p><strong>Nombre:</strong> {userInfo.nombre}</p>
+            <p><strong>Correo:</strong> {userInfo.correo}</p>
+          </div>
+        )}
+        {pacInfo && (
+          <div>
+            <p><strong>Sexo:</strong> {pacInfo.sexo}</p>
+            <p><strong>Ingreso:</strong> {new Date(pacInfo.fecha_ingreso).toLocaleDateString()}</p>
+            <p><strong>Comentarios:</strong> {pacInfo.comentarios}</p>
+          </div>
+        )}
+      </div>
 
-            const total = imagenes.length;       // número total de filas
-            const contadorDesc = total - index;  // 1.ª fila ⇒ N, 2.ª ⇒ N-1, …
-
-            return (
-              <tr
-                key={img.id}
-                onClick={() => router.push(`/imagenes/${img.id}`)}
-                style={{ cursor: 'pointer', backgroundColor: color }}
-              >
-                {/* Contador descendente */}
-                <td>{contadorDesc}</td>
-
-                {/* Resto de columnas */}
-                <td>{sum !== null ? sum : ''}</td>
-                <td>
-                  <img
-                    src={`${BACKEND_URL}/imagenes/${img.id}/archivo`}
-                    alt="img"
-                    width={64}
-                    height={64}
-                  />
-                </td>
-                <td>
-                  {seg ? (
-                    <img
-                      src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`}
-                      alt="mask"
-                      width={64}
-                      height={64}
-                    />
-                  ) : null}
-                </td>
+      <div className="card mt-1">
+        <div className="section-title">Mis Imagenes</div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>PWATScore</th>
+                <th>Imagen</th>
+                <th>Mascara</th>
                 {Array.from({ length: 8 }, (_, i) => (
-                  <td key={i}>{pwa ? pwa[`cat${i + 1}`] ?? '' : ''}</td>
+                  <th key={i}>{CAT_INFO[i+1]}</th>
                 ))}
-                <td>{new Date(img.fecha_captura).toLocaleDateString()}</td>
+                <th>Fecha</th>
               </tr>
-            );
-          })}
-        </tbody>
-
-
-      </table>
-      <LogoutButton />
-    </div>
+            </thead>
+            <tbody>
+              {imagenes.map(({ img, seg, pwa }, index) => {
+                const sum = pwa ? Array.from({ length: 8 }, (_, i) => pwa[`cat${i + 1}`] ?? 0).reduce((a, b) => a + b, 0) : null;
+                const color = sum !== null ? blendColors('#e6ffe6', '#ffe6e6', sum / 32) : 'transparent';
+                const total = imagenes.length;
+                const contadorDesc = total - index;
+                return (
+                  <tr key={img.id} onClick={() => router.push(`/imagenes/${img.id}`)} style={{ cursor: 'pointer', backgroundColor: color }}>
+                    <td>{contadorDesc}</td>
+                    <td>{sum !== null ? sum : ''}</td>
+                    <td><img src={`${BACKEND_URL}/imagenes/${img.id}/archivo`} alt="img" width={64} height={64} /></td>
+                    <td>{seg ? (<img src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`} alt="mask" width={64} height={64} />) : null}</td>
+                    {Array.from({ length: 8 }, (_, i) => (<td key={i}>{pwa ? pwa[`cat${i + 1}`] ?? '' : ''}</td>))}
+                    <td>{new Date(img.fecha_captura).toLocaleDateString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Layout>
   );
 }

@@ -1,7 +1,8 @@
+﻿import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import LogoutButton from '../../components/LogoutButton';
+import Layout from '../../components/Layout';
 
 export default function Consultas() {
   const router = useRouter();
@@ -9,30 +10,22 @@ export default function Consultas() {
 
   useEffect(() => {
     const stored = localStorage.getItem('token');
-    if (!stored) {
-      router.replace('/');
-    } else {
-      setToken(stored);
-    }
+    if (!stored) { router.replace('/'); } else { setToken(stored); }
   }, [router]);
 
-  if (!token) {
-    return null;
-  }
+  if (!token) return null;
 
   const endpoints = ['users', 'pacientes', 'profesionales', 'imagenes', 'segmentaciones', 'pwatscore'];
 
   return (
-    <div className="container">
-      <h1>Consultas del backend</h1>
-      <ul>
-        {endpoints.map((ep) => (
-          <li key={ep}>
-            <Link href={`/consultas/${ep}`}>{ep}</Link>
-          </li>
-        ))}
-      </ul>
-      <LogoutButton />
-    </div>
+    <Layout subtitle="Consultas del backend" actions={<LogoutButton />}>
+      <div className="card">
+        <ul className="stack">
+          {endpoints.map((ep) => (
+            <li key={ep}><Link href={`/consultas/${ep}`}>{ep}</Link></li>
+          ))}
+        </ul>
+      </div>
+    </Layout>
   );
 }

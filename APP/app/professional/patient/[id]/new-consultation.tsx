@@ -1,7 +1,8 @@
-import { useLocalSearchParams, router } from 'expo-router'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+﻿import { useLocalSearchParams, router } from 'expo-router'
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { useState } from 'react'
 import { getMyProfessional, registerAttention } from '@/lib/api'
+import { AppHeader, Card, layoutStyles } from '@/components/ui'
 
 export default function NewConsultation() {
   const { id } = useLocalSearchParams()
@@ -20,40 +21,17 @@ export default function NewConsultation() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Registrar Consulta</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Notas de la consulta"
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>Guardar</Text>
-      </TouchableOpacity>
+    <View style={layoutStyles.container}>
+      <AppHeader title="WoundNetB7 AI" subtitle="Registrar Consulta" />
+      <View style={layoutStyles.body}>
+        <Card>
+          <Text style={{ fontWeight: '700', marginBottom: 8 }}>Nueva consulta</Text>
+          <TextInput style={{ borderWidth:1, borderColor:'#e5e7eb', borderRadius:8, padding:8, minHeight:120, textAlignVertical:'top', marginBottom:12 }} placeholder="Notas de la consulta" value={notes} onChangeText={setNotes} multiline />
+          <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:12, borderRadius:8, alignItems:'center' }} onPress={handleSave}>
+            <Text style={{ color:'#fff', fontWeight:'600' }}>Guardar</Text>
+          </TouchableOpacity>
+        </Card>
+      </View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#4a90e2',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
-})
-
