@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BACKEND_URL, apiFetch } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 import LogoutButton from '../../components/LogoutButton';
 import Layout from '../../components/Layout';
 
