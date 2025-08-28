@@ -64,7 +64,7 @@ export default function ConsultaTipo() {
     if (!tipo) return;
     const fetchData = async () => {
       try { const res = await apiFetch(`/${tipo}`); const json = await res.json(); setData(json); }
-      catch (err) { setError('Error al obtener datos'); }
+      catch (err) { console.error('Error al obtener datos:', err); setError(err?.message || 'Error al obtener datos'); }
     };
     fetchData();
   }, [router, tipo]);
@@ -94,7 +94,7 @@ export default function ConsultaTipo() {
             <div className="section-title">Consultas disponibles</div>
             <ul>
               {operaciones[tipo].map((op, idx) => (
-                <li key={idx} style={{marginBottom:'1rem'}}>
+                <li key={`${op.metodo}-${op.ruta}`} style={{marginBottom:'1rem'}}>
                   <form onSubmit={e => { e.preventDefault(); ejecutarConsulta(op, bodies[idx]); }}>
                     <div>
                       <code>{op.metodo} {op.ruta}</code> - {op.descripcion}
