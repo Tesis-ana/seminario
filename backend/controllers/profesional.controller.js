@@ -61,7 +61,7 @@ const buscarProfesionalRut = async (req, res) => {
     if (!rut) {
         return res.status(400).json({ message: 'RUT requerido.' });
     }
-    const limpio = rut.replace(/[.\-]/g, '');
+    const limpio = rut.replace(/[.-]/g, '');
     try {
         const data = await db.Profesional.findOne({
             where: db.Sequelize.where(
