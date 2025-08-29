@@ -4,7 +4,16 @@ const multer = require('multer');
 const path  = require('path');
 const fs    = require('fs');
 const storage = multer.memoryStorage();
-const upload  = multer({ storage }).single('imagen');
+// Limitar tamaño y tipo de archivo para subidas seguras
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const upload  = multer({
+    storage,
+    limits: { fileSize: MAX_IMAGE_SIZE },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/pjpeg') return cb(null, true);
+        return cb(new Error('INVALID_FILE_TYPE'));
+    }
+}).single('imagen');
 
 const listarImagens = async (req, res) => {
     try {
@@ -34,6 +43,12 @@ const listarImagenesPaciente = async (req, res) => {
 const subirImagen = (req, res) => {
     upload(req, res, async function (err) {
         if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ message: 'La imagen excede el tamaño máximo permitido (5MB).' });
+            }
+            if (err.message === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
             return res.status(400).json({ message: 'Error al subir la imagen.' });
         }
         if (!req.file) {
@@ -105,6 +120,12 @@ const actualizarImagen = async (req, res) => {
 const actualizarImagenArchivo = (req, res) => {
     upload(req, res, async function (err) {
         if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ message: 'La imagen excede el tamaño máximo permitido (5MB).' });
+            }
+            if (err.message === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
             return res.status(400).json({ message: 'Error al subir la imagen.' });
         }
         if (!req.file) {

@@ -4,8 +4,22 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const storage = multer.memoryStorage();
-const upload = multer({ storage }).single('imagen');
+// Limitar tamaño y tipo de archivo para subidas seguras
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const upload = multer({
+    storage,
+    limits: { fileSize: MAX_IMAGE_SIZE },
+    fileFilter: (req, file, cb) => {
+        const ok = file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/pjpeg';
+        return ok ? cb(null, true) : cb(new Error('INVALID_FILE_TYPE'));
+    }
+}).single('imagen');
 const Op = db.Sequelize.Op;
+
+// PATH seguro para procesos hijos: solo directorios estándar y no escribibles
+const RESOLVED_SAFE_PATH = process.platform === 'win32'
+  ? 'C\\Windows\\System32'
+  : '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 
 const listarSegmentacions = async (req, res) => {
     try {
@@ -22,6 +36,12 @@ const listarSegmentacions = async (req, res) => {
 const crearSegmentacionManual = (req, res) => {
     upload(req, res, async function (err) {
         if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ message: 'La imagen excede el tamaño máximo permitido (5MB).' });
+            }
+            if (err.message === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
             return res.status(400).json({ message: 'Error al subir la imagen.' });
         }
         try {
@@ -118,7 +138,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
 
     // 2) Preparar comando y args
     const scriptDir = path.join(__dirname, '../../categorizador');
-    const cmd       = 'conda';
+    const cmd       = process.env.CONDA_BIN || 'conda';
     const args      = [
     'run', '-n', 'pyradiomics_env12',
     'python', path.join(scriptDir,'PWAT.py'),
@@ -131,7 +151,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
     // 3) Función para ejecutar el child process como promesa
     const ejecutarScript = () =>
         new Promise((resolve, reject) => {
-            const proc = spawn(cmd, args, { cwd: scriptDir });
+            const proc = spawn(cmd, args, { cwd: scriptDir, shell: false, env: { ...process.env, PATH: RESOLVED_SAFE_PATH } });
 
             let stdout = '';
             let stderr = '';
@@ -207,6 +227,12 @@ const crearSegmentacionAutomatica = async (req, res) => {
 const editarSegmentacion = (req, res) => {
     upload(req, res, async function (err) {
         if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ message: 'La imagen excede el tamaño máximo permitido (5MB).' });
+            }
+            if (err.message === 'INVALID_FILE_TYPE') {
+                return res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
+            }
             return res.status(400).json({ message: 'Error al subir la imagen.' });
         }
         try {
