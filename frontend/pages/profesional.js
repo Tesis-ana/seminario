@@ -38,22 +38,24 @@ const computeFechasYStats = async (pacs) => {
   let totalImgs = 0;
   let recientes = 0;
   let alerta = 0;
-  await Promise.all(
-    pacs.map(async (pa) => {
-      try {
-        const r = await apiFetch(`/imagenes/paciente/${pa.id}`);
-        const imgs = await r.json();
-        const info = analyzeImages(imgs, now);
-        fechas[pa.id] = info.ultimo;
-        totalImgs += info.count;
-        recientes += info.recientes;
-        alerta += info.alerta;
-      } catch (e) {
-        fechas[pa.id] = null;
-        alerta += 1;
-      }
-    })
-  );
+      await Promise.all(
+        pacs.map(async (pa) => {
+          try {
+            const r = await apiFetch(`/imagenes/paciente/${pa.id}`);
+            const imgs = await r.json();
+            const info = analyzeImages(imgs, now);
+            fechas[pa.id] = info.ultimo;
+            totalImgs += info.count;
+            recientes += info.recientes;
+            alerta += info.alerta;
+          } catch (e) {
+            // Log and continue with safe defaults to avoid breaking stats aggregation
+            console.error('Error al obtener imágenes del paciente', pa?.id, e);
+            fechas[pa.id] = null;
+            alerta += 1;
+          }
+        })
+      );
   const total = pacs.length || 1;
   return { fechas, stats: { total: pacs.length, totalImgs, recientesPct: Math.round((recientes / total) * 100), alerta } };
 };
