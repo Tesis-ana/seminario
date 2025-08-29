@@ -5,6 +5,73 @@ import LogoutButton from '../components/LogoutButton';
 import { CAT_INFO } from '../lib/categorias';
 import Layout from '../components/Layout';
 
+// Utilidades fuera del componente para bajar complejidad cognitiva
+const blendColors = (c1, c2, ratio) => {
+  const hex = (c) => c.replace('#', '');
+  const r1 = parseInt(hex(c1).substring(0, 2), 16);
+  const g1 = parseInt(hex(c1).substring(2, 4), 16);
+  const b1 = parseInt(hex(c1).substring(4, 6), 16);
+  const r2 = parseInt(hex(c2).substring(0, 2), 16);
+  const g2 = parseInt(hex(c2).substring(2, 4), 16);
+  const b2 = parseInt(hex(c2).substring(4, 6), 16);
+  const r = Math.round(r1 + (r2 - r1) * ratio);
+  const g = Math.round(g1 + (g2 - g1) * ratio);
+  const b = Math.round(b1 + (b2 - b1) * ratio);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+};
+
+const analyzeImages = (imgs, now) => {
+  const isArray = Array.isArray(imgs);
+  const count = isArray ? imgs.length : 0;
+  if (!isArray || imgs.length === 0) {
+    return { ultimo: null, recientes: 0, alerta: 1, count };
+  }
+  const latest = imgs.slice().sort((a, b) => new Date(b.fecha_captura) - new Date(a.fecha_captura))[0];
+  const ts = new Date(latest.fecha_captura).getTime();
+  const isReciente = (now - ts) < 1000 * 60 * 60 * 24 * 30;
+  return { ultimo: latest.fecha_captura, recientes: isReciente ? 1 : 0, alerta: isReciente ? 0 : 1, count };
+};
+
+const computeFechasYStats = async (pacs) => {
+  const now = Date.now();
+  const fechas = {};
+  let totalImgs = 0;
+  let recientes = 0;
+  let alerta = 0;
+  await Promise.all(
+    pacs.map(async (pa) => {
+      try {
+        const r = await apiFetch(`/imagenes/paciente/${pa.id}`);
+        const imgs = await r.json();
+        const info = analyzeImages(imgs, now);
+        fechas[pa.id] = info.ultimo;
+        totalImgs += info.count;
+        recientes += info.recientes;
+        alerta += info.alerta;
+      } catch (e) {
+        fechas[pa.id] = null;
+        alerta += 1;
+      }
+    })
+  );
+  const total = pacs.length || 1;
+  return { fechas, stats: { total: pacs.length, totalImgs, recientesPct: Math.round((recientes / total) * 100), alerta } };
+};
+
+const riskLabelFromSum = (sum) => {
+  if (sum == null) return '';
+  if (sum >= 16) return 'Riesgo Alto';
+  if (sum >= 8) return 'Riesgo Medio';
+  return 'Riesgo Bajo';
+};
+
+const riskColorFromSum = (sum) => {
+  if (sum == null) return 'gray';
+  if (sum >= 16) return 'red';
+  if (sum >= 8) return 'yellow';
+  return 'green';
+};
+
 export default function ProfesionalPacientes() {
   const router = useRouter();
   const [pacientes, setPacientes] = useState([]);
@@ -16,44 +83,28 @@ export default function ProfesionalPacientes() {
   const [profInfo, setProfInfo] = useState(null);
   const [stats, setStats] = useState({ total:0, totalImgs:0, recientesPct:0, alerta:0 });
 
-  const blendColors = (c1, c2, ratio) => {
-    const hex = (c) => c.replace('#', '');
-    const r1 = parseInt(hex(c1).substring(0, 2), 16);
-    const g1 = parseInt(hex(c1).substring(2, 4), 16);
-    const b1 = parseInt(hex(c1).substring(4, 6), 16);
-    const r2 = parseInt(hex(c2).substring(0, 2), 16);
-    const g2 = parseInt(hex(c2).substring(2, 4), 16);
-    const b2 = parseInt(hex(c2).substring(4, 6), 16);
-    const r = Math.round(r1 + (r2 - r1) * ratio);
-    const g = Math.round(g1 + (g2 - g1) * ratio);
-    const b = Math.round(b1 + (b2 - b1) * ratio);
-    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
-  };
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { router.replace('/'); return; }
     async function load() {
       try {
-        const [userRes, profRes] = await Promise.all([ apiFetch('/users/me'), apiFetch('/profesionales/me') ]);
+        const [userRes, profRes] = await Promise.all([
+          apiFetch('/users/me'),
+          apiFetch('/profesionales/me')
+        ]);
         if (userRes.ok) setUserInfo(await userRes.json());
-        const prof = await profRes.json(); if (!profRes.ok) throw new Error(prof.message || 'Error');
+        const prof = await profRes.json();
+        if (!profRes.ok) throw new Error(prof.message || 'Error');
         setProfInfo(prof);
         const resPacs = await apiFetch(`/pacientes/profesional/${prof.id}`);
-        const pacs = await resPacs.json(); setPacientes(pacs);
-        const fechas = {}; let totalImgs = 0; let recientes = 0; let alerta = 0; const now = Date.now();
-        await Promise.all(pacs.map(async (pa) => {
-          try {
-            const r = await apiFetch(`/imagenes/paciente/${pa.id}`);
-            const imgs = await r.json(); totalImgs += Array.isArray(imgs) ? imgs.length : 0;
-            if (Array.isArray(imgs) && imgs.length > 0) {
-              const ult = imgs.sort((a,b) => new Date(b.fecha_captura) - new Date(a.fecha_captura))[0];
-              const ts = new Date(ult.fecha_captura).getTime(); fechas[pa.id] = ult.fecha_captura; if (now - ts < 1000*60*60*24*30) recientes++; else alerta++;
-            } else { alerta++; }
-          } catch(e) { fechas[pa.id] = null; alerta++; }
-        }));
-        setUltimas(fechas); const total = pacs.length || 1; setStats({ total: pacs.length, totalImgs, recientesPct: Math.round((recientes/total)*100), alerta });
-      } catch (err) { console.error(err); }
+        const pacs = await resPacs.json();
+        setPacientes(pacs);
+        const { fechas, stats } = await computeFechasYStats(pacs);
+        setUltimas(fechas);
+        setStats(stats);
+      } catch (err) {
+        console.error('Error al cargar panel profesional:', err);
+      }
     }
     load();
   }, [router]);
@@ -87,8 +138,8 @@ export default function ProfesionalPacientes() {
 
   const latestPwa = imagenes && imagenes.length > 0 ? imagenes[0].pwa : null;
   const latestSum = latestPwa ? Array.from({ length: 8 }, (_, i) => latestPwa[`cat${i+1}`] ?? 0).reduce((a,b)=>a+b,0) : null;
-  const riskLabel = latestSum==null ? '' : latestSum>=16 ? 'Riesgo Alto' : latestSum>=8 ? 'Riesgo Medio' : 'Riesgo Bajo';
-  const riskColor = latestSum==null ? 'gray' : latestSum>=16 ? 'red' : latestSum>=8 ? 'yellow' : 'green';
+  const riskLabel = riskLabelFromSum(latestSum);
+  const riskColor = riskColorFromSum(latestSum);
   const riskPct = latestSum==null ? 0 : Math.min(100, Math.round((latestSum/32)*100));
 
   return (
@@ -135,7 +186,7 @@ export default function ProfesionalPacientes() {
                         <th>Identificador</th>
                         <th>Imagen</th>
                         <th>Mascara</th>
-                        {Array.from({ length: 8 }, (_, i) => (<th key={i} title={CAT_INFO[i+1]}>Cat {i+1}</th>))}
+                        {Array.from({ length: 8 }, (_, i) => (<th key={`cat-h-${i}`} title={CAT_INFO[i+1]}>Cat {i+1}</th>))}
                         <th>Fecha</th>
                         <th>Reemplazar</th>
                       </tr>
@@ -149,7 +200,7 @@ export default function ProfesionalPacientes() {
                             <td>{img.id}</td>
                             <td><img src={`${BACKEND_URL}/imagenes/${img.id}/archivo`} alt="img" width={64} height={64} /></td>
                             <td>{seg ? (<img src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`} alt="mask" width={64} height={64} />) : null}</td>
-                            {Array.from({ length: 8 }, (_, i) => (<td key={i}>{pwa ? pwa[`cat${i+1}`] ?? '' : ''}</td>))}
+                            {Array.from({ length: 8 }, (_, i) => (<td key={`cat-c-${i}`}>{pwa ? pwa[`cat${i+1}`] ?? '' : ''}</td>))}
                             <td>{new Date(img.fecha_captura).toLocaleDateString()}</td>
                             <td><input type="file" onChange={e => reemplazarImagen(img.id, e.target.files[0])} /></td>
                           </tr>
