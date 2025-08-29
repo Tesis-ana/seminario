@@ -81,7 +81,17 @@ export default function Admin() {
   const analisisRealizados = pwats.length;
   const segRate = imagenes.length ? Math.round((segs.length / imagenes.length) * 100) : 0;
   const altoRiesgo = pwats.reduce((acc, p) => { const sum = [1,2,3,4,5,6,7,8].reduce((s, i) => s + (p[`cat${i}`] || 0), 0); return acc + (sum >= 16 ? 1 : 0); }, 0);
-  const dist = pwats.reduce((d, p) => { const sum = [1,2,3,4,5,6,7,8].reduce((s, i) => s + (p[`cat${i}`] || 0), 0); if (sum >= 16) d.alto++; else if (sum >= 8) d.medio++; else d.bajo++; return d; }, { bajo:0, medio:0, alto:0 });
+  const dist = pwats.reduce((d, p) => {
+    const sum = [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, i) => s + (p[`cat${i}`] || 0), 0);
+    if (sum >= 16) {
+      d.alto++;
+    } else if (sum >= 8) {
+      d.medio++;
+    } else {
+      d.bajo++;
+    }
+    return d;
+  }, { bajo: 0, medio: 0, alto: 0 });
   const totalPwats = Math.max(1, pwats.length);
   const pct = (n) => Math.round((n / totalPwats) * 100);
 
@@ -99,8 +109,26 @@ export default function Admin() {
           <div className="card">
             <div className="section-title">Usuarios</div>
             <div style={{marginBottom:8}}>
-              <label className="badge gray" style={{marginRight:8}}>CSV</label>
-              <input type="file" accept=".csv" onChange={async (e)=>{ const file = e.target.files[0]; if (!file) return; const text = await file.text(); const lines = text.trim().split(/\n+/); const headers = lines.shift().split(','); const users = lines.map(l=>{ const v=l.split(','); const o={}; headers.forEach((h,i)=>o[h.trim()]=v[i]?.trim()); return o;}); await apiFetch('/users/bulk', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ users }) }); loadAll(); }} />
+              <label className="badge gray" style={{marginRight:8}} htmlFor="usersCsv">CSV</label>
+              <input id="usersCsv" type="file" accept=".csv" onChange={async (e) => {
+                const file = e.target.files[0];
+                if (!file) { return; }
+                const text = await file.text();
+                const lines = text.trim().split(/\n+/);
+                const headers = lines.shift().split(',');
+                const users = lines.map(l => {
+                  const v = l.split(',');
+                  const o = {};
+                  headers.forEach((h, i) => o[h.trim()] = v[i]?.trim());
+                  return o;
+                });
+                await apiFetch('/users/bulk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ users })
+                });
+                loadAll();
+              }} />
             </div>
             <form onSubmit={handleUserSubmit}>
               <input value={userForm.nombre} onChange={e=>setUserForm({ ...userForm, nombre:e.target.value })} placeholder="Nombre" />
@@ -135,24 +163,26 @@ export default function Admin() {
           <div className="card">
             <div className="section-title">Profesionales</div>
             <div style={{marginBottom:8}}>
-              <label className="badge gray" style={{marginRight:8}}>CSV</label>
-              <input type="file" accept=".csv" onChange={async (e)=>{ 
-                  const file = e.target.files[0]; 
-                  if (!file) return; 
-                  const text = await file.text(); 
-                  const lines = text.trim().split(/\n+/); 
-                  const headers = lines.shift().split(','); 
-                  const profesionales = lines.map(l=>{ const v=l.split(','); 
-                  const o={}; 
-                  headers.forEach((h,i)=>o[h.trim()]=v[i]?.trim()); 
+              <label className="badge gray" style={{marginRight:8}} htmlFor="profesCsv">CSV</label>
+              <input id="profesCsv" type="file" accept=".csv" onChange={async (e) => {
+                const file = e.target.files[0];
+                if (!file) { return; }
+                const text = await file.text();
+                const lines = text.trim().split(/\n+/);
+                const headers = lines.shift().split(',');
+                const profesionales = lines.map(l => {
+                  const v = l.split(',');
+                  const o = {};
+                  headers.forEach((h, i) => o[h.trim()] = v[i]?.trim());
                   return o;
-                }); 
-                await apiFetch('/profesionales/bulk', 
-                { 
-                  method:'POST', 
-                  headers:{'Content-Type':'application/json'}, 
-                  body: JSON.stringify({ profesionales }) 
-                }); loadAll(); }} />
+                });
+                await apiFetch('/profesionales/bulk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ profesionales })
+                });
+                loadAll();
+              }} />
             </div>
             <form onSubmit={handleProfSubmit}>
               <input value={profForm.especialidad} onChange={e=>setProfForm({ ...profForm, especialidad:e.target.value })} placeholder="Especialidad" />
