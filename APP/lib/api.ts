@@ -36,7 +36,7 @@ export interface Consulta {
 
 const API_URL = 'http://192.168.1.91:5000'
 // TODO: replace with secure token retrieval
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTYyMzMxNDIsImV4cCI6MTc1NjMxOTU0Mn0.sV9CXqLmwnmzwiEA9h6n-r48UsSrig8W8CYVxDd6xuM'
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTY1MTcxNzUsImV4cCI6MTc1NjYwMzU3NX0.-3vAn0QZY-GIH2qKUkd0SWshiI2OzyaGzJiU7klxsUs'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {

@@ -1,6 +1,6 @@
 const tokenfunc = require('./token.middleware.js');
 
-function verifyToken(req, res, next) {
+function  verifyToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
     return res.status(401).json({ message: 'Token requerido.' });

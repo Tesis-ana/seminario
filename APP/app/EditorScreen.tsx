@@ -1,7 +1,7 @@
 import Slider from "@react-native-community/slider";
 import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams } from "expo-router";
-import { Brush, Eraser, Layers2, Trash2, Undo2 } from "lucide-react-native";
+import { Brush, Layers2, Trash2, Undo2 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,

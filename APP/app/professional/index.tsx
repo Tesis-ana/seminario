@@ -48,7 +48,7 @@ export default function MyPatients() {
               data={patients}
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => (
-                <TouchableOpacity style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eef2f7' }} onPress={() => router.push(`/professional/patient/${item.id}`)}>
+                <TouchableOpacity style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eef2f7' }} onPress={() => router.push(`/professional/patient`)}>
                   <Text style={{ fontSize: 16, fontWeight: '500' }}>{item.user.nombre}</Text>
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>{item.user.rut}</Text>
                 </TouchableOpacity>
