@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function PatientTabsLayout() {
   const { id } = useLocalSearchParams();
   return (
-    <Tabs screenOptions={{ headerTitle: `Paciente ${id}` }}>
+    <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
         name="index"
         options={{

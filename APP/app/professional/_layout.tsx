@@ -25,8 +25,21 @@ export default function ProfessionalTabs() {
                 }}
             />
             <Tabs.Screen
+                name='register'
+                options={{
+                    headerShown: false,
+                    title: 'Registrar atención',
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name='create' color={color} size={size} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name='patient'
                 options={{
+                    // Ocultamos la barra de tabs superior (padre) y el header
+                    headerShown: false,
+                    tabBarStyle: { display: 'none' },
                     title: 'Mis Pacientes',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name='people' color={color} size={size} />
@@ -36,6 +49,7 @@ export default function ProfessionalTabs() {
             <Tabs.Screen
                 name='search'
                 options={{
+                    headerShown: false,
                     title: 'Buscar',
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name='search' color={color} size={size} />

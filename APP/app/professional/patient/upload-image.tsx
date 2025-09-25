@@ -13,7 +13,25 @@ export default function UploadImage() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1 })
-    if (!res.canceled && res.assets.length > 0) { setImageUri(res.assets[0].uri); setUploaded(null) }
+    if (!res.canceled && res.assets.length > 0) {
+      setImageUri(res.assets[0].uri)
+      setUploaded(null)
+      setMaskUri(null)
+    }
+  }
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync()
+    if (!permission.granted) {
+      Alert.alert('Permiso requerido', 'Activa el acceso a la camara para tomar fotos')
+      return
+    }
+    const res = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1 })
+    if (!res.canceled && res.assets.length > 0) {
+      setImageUri(res.assets[0].uri)
+      setUploaded(null)
+      setMaskUri(null)
+    }
   }
 
   const uploadImage = async () => {
@@ -54,6 +72,9 @@ export default function UploadImage() {
         <Card style={{ width:'100%', alignItems:'center' }}>
           <Text style={{ fontWeight: '700', marginBottom: 8 }}>Gestion de Imagen</Text>
           {imageUri && <Image source={{ uri: imageUri }} style={{ width: 250, height: 250, borderRadius: 8, marginBottom: 12 }} />}
+          <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:12, borderRadius:8, alignItems:'center', width:'100%', marginBottom:10 }} onPress={takePhoto}>
+            <Text style={{ color:'#fff', fontWeight:'600' }}>Tomar Foto</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:12, borderRadius:8, alignItems:'center', width:'100%', marginBottom:10 }} onPress={pickImage}>
             <Text style={{ color:'#fff', fontWeight:'600' }}>{imageUri ? 'Cambiar Imagen' : 'Seleccionar Imagen'}</Text>
           </TouchableOpacity>

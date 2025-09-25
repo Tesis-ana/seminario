@@ -4,7 +4,9 @@ import * as NavigationBar from "expo-navigation-bar"
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect } from "react"
-import { StyleSheet, View } from "react-native"
+import { StyleSheet } from "react-native"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import "react-native-reanimated"
 
 export default function RootLayout() {
@@ -25,27 +27,29 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar hidden style="auto" />
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="EditorScreen" options={{ orientation: "all", headerShown:false}} />
-        <Stack.Screen
-          name="camera"
-          options={{
-            title: "Cámara",
-            headerShown: false,
-            presentation: "fullScreenModal",
-          }}
-        />
-        <Stack.Screen name="professional" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="professional/patient/[id]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </View>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <StatusBar hidden style="auto" />
+        {/** Reservar siempre el área segura inferior para no pegar contenido a la barra de navegación */}
+        <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="EditorScreen" options={{ orientation: "all", headerShown:false}} />
+            <Stack.Screen
+              name="camera"
+              options={{
+                title: "Cámara",
+                headerShown: false,
+                presentation: "fullScreenModal",
+              }}
+            />
+            <Stack.Screen name="professional" options={{ headerShown: false }} />
+            {/** Nota: no declaramos rutas no existentes */}
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </SafeAreaView>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   )
 }
 

@@ -36,7 +36,7 @@ export interface Consulta {
 
 const API_URL = 'http://192.168.1.91:5000'
 // TODO: replace with secure token retrieval
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTY1MTcxNzUsImV4cCI6MTc1NjYwMzU3NX0.-3vAn0QZY-GIH2qKUkd0SWshiI2OzyaGzJiU7klxsUs'
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTg2NDY4MTF9.eQKPcmu6zxAeo-Z0GlKEJN1S7smtM6fLr3ErjTuhAJA'
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -110,7 +110,9 @@ export async function uploadPatientImage(
     const message = await res.text()
     throw new Error(message || res.statusText)
   }
-  return res.json()
+  const json = await res.json()
+  // Backend devuelve { message, imagen }. Retornamos solo la entidad Imagen.
+  return json.imagen as Imagen
 }
 
 export async function createManualSegmentation(

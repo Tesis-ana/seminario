@@ -32,7 +32,7 @@ export default function SearchPatients() {
             <Text style={{ color:'#fff', fontWeight:'600' }}>Buscar</Text>
           </TouchableOpacity>
           {result && (
-            <TouchableOpacity style={{ paddingVertical: 12, borderTopWidth:1, borderColor:'#eef2f7' }} onPress={() => router.push(`/professional/patient/${result.id}`)}>
+            <TouchableOpacity style={{ paddingVertical: 12, borderTopWidth:1, borderColor:'#eef2f7' }} onPress={() => router.push({ pathname: '/professional/patient', params: { id: String(result.id) } })}>
               <Text style={{ fontSize: 16, fontWeight: '500' }}>{result.user.nombre}</Text>
               <Text style={{ fontSize: 12, color: '#6b7280' }}>{result.user.rut}</Text>
             </TouchableOpacity>

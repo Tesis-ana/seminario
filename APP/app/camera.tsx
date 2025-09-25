@@ -3,8 +3,10 @@ import { CameraView, useCameraPermissions, type CameraType } from "expo-camera"
 import { router } from "expo-router"
 import { useRef, useState } from "react"
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function CameraScreen() {
+  const insets = useSafeAreaInsets()
   const [type, setType] = useState<CameraType>("back")
   const [permission, requestPermission] = useCameraPermissions()
   const [isTakingPicture, setIsTakingPicture] = useState(false)
@@ -67,7 +69,7 @@ export default function CameraScreen() {
   return (
     <View style={styles.container}>
       <CameraView ref={cameraRef} style={styles.camera} facing={type} ratio="16:9" />
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: 30 + insets.bottom }]}>
         <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>

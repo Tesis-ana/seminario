@@ -1,26 +1,41 @@
 ﻿import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 type HeaderProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
   right?: React.ReactNode;
+  showHome?: boolean;
+  onPressHome?: () => void;
+  variant?: 'brand' | 'custom';
 };
 
-export function AppHeader({ title, subtitle, right }: HeaderProps) {
+export function AppHeader({ title, subtitle, right, showHome = true, onPressHome, variant = 'brand' }: HeaderProps) {
+  const isBrand = variant !== 'custom';
+  const titleText = isBrand ? 'Estimación PWAT' : (title ?? 'Estimación PWAT');
+  const subtitleText = isBrand ? 'Panel de Profesionales' : (subtitle ?? '');
   return (
-    <View style={styles.header}>
+    <SafeAreaView edges={['top']} style={styles.header}>
       <View style={styles.headerInner}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={styles.logo}><Text style={styles.logoText}>WN</Text></View>
+          <View style={styles.logo}><Text style={styles.logoText}>EP</Text></View>
           <View>
-            <Text style={styles.headerTitle}>{title}</Text>
-            {subtitle ? <Text style={styles.headerSub}>{subtitle}</Text> : null}
+            <Text style={styles.headerTitle}>{titleText}</Text>
+            {subtitleText ? <Text style={styles.headerSub}>{subtitleText}</Text> : null}
           </View>
         </View>
-        <View>{right}</View>
+        <View>
+          {right ?? (showHome ? (
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ir al inicio" onPress={onPressHome ?? (() => router.replace('/professional'))}>
+              <Ionicons name="home" size={22} color="#fff" />
+            </TouchableOpacity>
+          ) : null)}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

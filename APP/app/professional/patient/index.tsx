@@ -30,10 +30,10 @@ export default function PatientDetail() {
         <Card>
           <Text style={{ fontWeight: '700', marginBottom: 8 }}>Acciones</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:10, borderRadius:8 }} onPress={() => router.push(`/professional/patient/${id}/upload-image`)}>
+            <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:10, borderRadius:8 }} onPress={() => router.push({ pathname: '/professional/patient/upload-image', params: { id: String(id) } })}>
               <Text style={{ color:'#fff', fontWeight:'600' }}>Subir imagen</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:10, borderRadius:8 }} onPress={() => router.push(`/professional/patient/${id}/new-consultation`)}>
+            <TouchableOpacity style={{ backgroundColor:'#6d5efc', padding:10, borderRadius:8 }} onPress={() => router.push({ pathname: '/professional/patient/new-consultation', params: { id: String(id) } })}>
               <Text style={{ color:'#fff', fontWeight:'600' }}>Nueva consulta</Text>
             </TouchableOpacity>
           </View>

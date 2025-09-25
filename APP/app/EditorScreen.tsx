@@ -2,6 +2,8 @@ import Slider from "@react-native-community/slider";
 import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams } from "expo-router";
 import { Brush, Layers2, Trash2, Undo2 } from "lucide-react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +23,7 @@ import {
 import { runOnJS } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Types
 type StrokeData = {
@@ -41,6 +44,7 @@ const getStrokeColor = (isEraser: boolean, exportMode: boolean) =>
 export default function EditorScreen() {
   const { imageUri } = useLocalSearchParams();
   const uri = Array.isArray(imageUri) ? imageUri[0] : (imageUri as string);
+  const insets = useSafeAreaInsets();
 
   const [brushSize, setBrushSize] = useState(20);
   const [showSizeSlider, setShowSizeSlider] = useState<
@@ -71,7 +75,9 @@ export default function EditorScreen() {
       uri,
       (width, height) => {
         const screenWidth = Dimensions.get("window").width;
-        const screenHeight = Dimensions.get("window").height - 100;
+        // Altura disponible menos toolbar (~80) y áreas seguras superior/inferior
+        const TOOLBAR_ESTIMATED = 80;
+        const screenHeight = Dimensions.get("window").height - insets.top - insets.bottom - TOOLBAR_ESTIMATED;
         const scaleFactor = Math.min(
           screenWidth / width,
           screenHeight / height
@@ -87,7 +93,7 @@ export default function EditorScreen() {
         setLoading(false);
       }
     );
-  }, [uri]);
+  }, [uri, insets.top, insets.bottom]);
 
   const startNewPath = (x: number, y: number) => {
     setCurrentPath([`M ${x} ${y}`]);
@@ -130,6 +136,19 @@ export default function EditorScreen() {
 
   const saveImage = async (isMask = false) => {
     try {
+      // Solicitar permisos para guardar en la galería si no están concedidos
+      const perm = await MediaLibrary.getPermissionsAsync();
+      if (!perm.granted) {
+        const req = await MediaLibrary.requestPermissionsAsync();
+        if (!req.granted) {
+          Alert.alert(
+            "Permiso requerido",
+            "Debes otorgar permisos de galería para guardar la máscara."
+          );
+          return;
+        }
+      }
+
       setExportMode(true);
       setTimeout(async () => {
         const uri = await viewShotRef.current.capture();
@@ -166,10 +185,16 @@ export default function EditorScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <View style={styles.editorContainer}>
+      <TouchableOpacity
+        onPress={() => router.replace('/professional')}
+        style={{ position: 'absolute', top: insets.top + 8, left: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20 }}
+      >
+        <Ionicons name="home" size={20} color="#fff" />
+      </TouchableOpacity>
+      <View style={[styles.editorContainer, { paddingTop: insets.top }] }>
         <ViewShot
           ref={viewShotRef}
-          options={{ format: "png", quality: 1 }}
+          options={{ format: "jpg", quality: 1 }}
           style={[
             styles.imageContainer,
             {
@@ -249,7 +274,7 @@ export default function EditorScreen() {
         </View>
       )}
 
-      <View style={styles.toolbar}>
+      <View style={[styles.toolbar, { paddingBottom: Math.max(6, insets.bottom) }]}>
         <TouchableOpacity
           style={[styles.toolButton, !isErasing && styles.activeToolButton]}
           onPress={() => setIsErasing(false)}
