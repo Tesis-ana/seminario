@@ -1,0 +1,21 @@
+meta {
+  name: Buscar profesional
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/profesionales/buscar
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

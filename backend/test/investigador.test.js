@@ -1,9 +1,11 @@
-const test = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
+import { test, expect } from "bun:test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 test('metrics file exists', () => {
-  const metricsPath = path.join(__dirname, '..', 'data', 'metrics.json');
-  assert.ok(fs.existsSync(metricsPath));
+  const metricsPath = join(__dirname, '..', 'data', 'metrics.json');
+  expect(existsSync(metricsPath)).toBe(true);
 });

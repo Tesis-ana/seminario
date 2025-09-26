@@ -1,4 +1,4 @@
-﻿import { use, useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
 import LogoutButton from '../components/LogoutButton';
@@ -26,25 +26,36 @@ export default function Home() {
     };
 
     useEffect(() => {
-        const stored = localStorage.getItem('token');
-        if (stored) {
+        const validateToken = async () => {
+            const stored = localStorage.getItem('token');
+            if (!stored) return;
             setToken(stored);
-            const fetch = apiFetch('/users/validate', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${stored}` }
-            });
-            if (fetch.status === 401) {
+            try {
+                const res = await apiFetch('/users/validate', {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${stored}` },
+                });
+                if (res.ok) {
+                    redirectByRole(stored);
+                } else {
+                    localStorage.removeItem('token');
+                    setToken(null);
+                }
+            } catch (e) {
                 localStorage.removeItem('token');
                 setToken(null);
-            }else{
-                redirectByRole(stored);
             }
-        }
+        };
+        validateToken();
     }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        if (!rut.trim() || !contra.trim()) {
+            setError('RUT y contrasena son obligatorios');
+            return;
+        }
         try {
             const res = await apiFetch('/users/login', {
                 method: 'POST',

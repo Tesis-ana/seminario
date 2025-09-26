@@ -1,0 +1,15 @@
+meta {
+  name: Obtener metricas investigador
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/investigador/metrics
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

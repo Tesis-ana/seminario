@@ -1,0 +1,15 @@
+meta {
+  name: Obtener paciente actual
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/pacientes/me
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

@@ -2,7 +2,13 @@
 const db = require("../models");
 const Op = db.Sequelize.Op;
 const path = require('path');
-const { spawn } = require('child_process');
+const childProcess = require('child_process');
+
+let spawn = childProcess.spawn;
+function __setSpawn(fn) {
+  spawn = fn;
+}
+
 
 const listarPwatscores = async (req, res) => {
     try {
@@ -149,5 +155,6 @@ module.exports = {
     predecirPwatscore,
     buscarPwatscore,
     actualizarPwatscore,
-    eliminarPwatscore
+    eliminarPwatscore,
+  __setSpawn,
 };

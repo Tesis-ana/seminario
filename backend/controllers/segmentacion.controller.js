@@ -1,5 +1,10 @@
 const db = require('../models');
-const { spawn } = require('child_process');
+const childProcess = require('child_process');
+
+let spawn = childProcess.spawn;
+function __setSpawn(fn) {
+  spawn = fn;
+}
 const path = require('path');
 const fs = require('fs');
 
@@ -319,5 +324,6 @@ module.exports = {
   crearSegmentacionAutomatica,
   editarSegmentacion,
   descargarMascara,
+  __setSpawn,
 };
 

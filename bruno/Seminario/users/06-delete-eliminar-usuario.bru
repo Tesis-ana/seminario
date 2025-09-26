@@ -1,0 +1,22 @@
+meta {
+  name: Eliminar usuario
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/users
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

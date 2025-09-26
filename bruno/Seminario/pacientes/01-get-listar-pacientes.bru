@@ -1,0 +1,15 @@
+meta {
+  name: Listar pacientes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/pacientes
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

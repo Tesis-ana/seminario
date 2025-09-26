@@ -1,0 +1,22 @@
+meta {
+  name: Reentrenar modelo investigador
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/investigador/retrain
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

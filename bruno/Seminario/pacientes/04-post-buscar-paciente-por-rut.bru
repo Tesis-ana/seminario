@@ -1,0 +1,22 @@
+meta {
+  name: Buscar paciente por rut
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/pacientes/buscar-rut
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

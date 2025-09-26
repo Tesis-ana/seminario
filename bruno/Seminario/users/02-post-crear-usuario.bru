@@ -1,0 +1,22 @@
+meta {
+  name: Crear usuario
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/crear
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Eliminar pwatscore
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/pwatscore
+  body: json
+  auth: inherit
+
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

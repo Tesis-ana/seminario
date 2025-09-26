@@ -1,0 +1,15 @@
+meta {
+  name: Obtener metricas categorizador
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/categorizador/metrics
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

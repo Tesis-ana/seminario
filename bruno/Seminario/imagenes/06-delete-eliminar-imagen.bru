@@ -1,0 +1,22 @@
+meta {
+  name: Eliminar imagen
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/imagenes
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

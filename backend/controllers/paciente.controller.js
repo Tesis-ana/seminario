@@ -17,6 +17,9 @@ const listarPacientes = async (req, res) => {
 const crearPaciente = async (req, res) => {
     try {
         const { sexo , comentarios = null, user_id , profesional_id = null } = req.body;
+        if (!sexo || !user_id) {
+            return res.status(400).json({ message: 'Los campos sexo y user_id son obligatorios.' });
+        }
         const fecha_ingreso = new Date();
         const nuevoPaciente = await db.Paciente.create({
             sexo,

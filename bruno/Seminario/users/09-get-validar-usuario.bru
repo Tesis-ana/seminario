@@ -1,0 +1,15 @@
+meta {
+  name: Validar usuario
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/users/validate
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

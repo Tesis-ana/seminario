@@ -1,0 +1,22 @@
+meta {
+  name: Eliminar segmentacion
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/segmentaciones
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

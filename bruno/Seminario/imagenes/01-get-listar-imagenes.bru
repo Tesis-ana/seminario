@@ -1,0 +1,15 @@
+meta {
+  name: Listar imagenes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/imagenes
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

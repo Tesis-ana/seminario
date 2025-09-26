@@ -1,0 +1,15 @@
+meta {
+  name: Listar profesionales
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/profesionales
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

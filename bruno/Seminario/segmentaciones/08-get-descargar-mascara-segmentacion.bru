@@ -1,0 +1,15 @@
+meta {
+  name: Descargar mascara segmentacion
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/segmentaciones/{{segmentacionId}}/mask
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

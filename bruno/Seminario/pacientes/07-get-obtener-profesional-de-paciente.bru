@@ -1,0 +1,15 @@
+meta {
+  name: Obtener profesional de paciente
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/pacientes/{{pacienteId}}/profesional
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

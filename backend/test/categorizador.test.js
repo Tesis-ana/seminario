@@ -1,9 +1,11 @@
-const test = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
+import { test, expect } from "bun:test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 test('eval_metrics script exists', () => {
-  const script = path.join(__dirname, '..', '..', 'categorizador', 'eval_metrics.py');
-  assert.ok(fs.existsSync(script));
+  const script = join(__dirname, '..', '..', 'categorizador', 'eval_metrics.py');
+  expect(existsSync(script)).toBe(true);
 });

@@ -1,0 +1,22 @@
+meta {
+  name: Buscar usuario
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/users/buscar
+  body: json
+  auth: inherit
+
+}
+
+body:json {
+  {
+    "TODO": "Actualizar payload"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

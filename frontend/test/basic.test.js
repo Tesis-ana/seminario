@@ -1,7 +1,6 @@
-const test = require('node:test');
-const assert = require('node:assert');
-const pkg = require('../package.json');
+import { test, expect } from "bun:test";
+import pkg from "../package.json" with { type: "json" };
 
-test('tiene nombre de paquete correcto', () => {
-  assert.strictEqual(pkg.name, 'frontend');
+test("tiene nombre de paquete correcto", () => {
+  expect(pkg.name).toBe("frontend");
 });

@@ -1,0 +1,22 @@
+meta {
+  name: Iniciar sesion usuario
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/users/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "rut": "11.111.111-1",
+    "contra": "123"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
