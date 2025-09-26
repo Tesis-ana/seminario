@@ -1,10 +1,9 @@
-import Slider from "@react-native-community/slider";
-import * as MediaLibrary from "expo-media-library";
-import { useLocalSearchParams } from "expo-router";
-import { Brush, Layers2, Trash2, Undo2 } from "lucide-react-native";
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from "react";
+import Slider from '@react-native-community/slider'
+import { useLocalSearchParams } from 'expo-router'
+import { Brush, Eraser, Layers2, Trash2, Undo2 } from 'lucide-react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -14,165 +13,155 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native'
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
-import ViewShot from "react-native-view-shot";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from 'react-native-gesture-handler'
+import { runOnJS } from 'react-native-reanimated'
+import Svg, { Path } from 'react-native-svg'
+import ViewShot from 'react-native-view-shot'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// Types
+import { setMaskDraft } from '@/lib/maskStore'
+
 type StrokeData = {
-  path: string;
-  isEraser: boolean;
-  strokeWidth: number;
-};
+  path: string
+  isEraser: boolean
+  strokeWidth: number
+}
 
 const getStrokeColor = (isEraser: boolean, exportMode: boolean) =>
   exportMode
     ? isEraser
-      ? "black"
-      : "white"
+      ? 'black'
+      : 'white'
     : isEraser
-    ? "#f5f5f5"
-    : "rgba(255,0,0,0.5)";
+    ? '#f5f5f5'
+    : 'rgba(255,0,0,0.5)'
 
 export default function EditorScreen() {
-  const { imageUri } = useLocalSearchParams();
-  const uri = Array.isArray(imageUri) ? imageUri[0] : (imageUri as string);
-  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ imageUri?: string | string[]; maskUri?: string | string[] }>()
+  const imageParam = params.imageUri
+  const uri = Array.isArray(imageParam) ? imageParam[0] : (imageParam as string | undefined)
+  const maskParam = params.maskUri
 
-  const [brushSize, setBrushSize] = useState(20);
-  const [showSizeSlider, setShowSizeSlider] = useState<
-    "brush" | "eraser" | null
-  >(null);
-  const [strokes, setStrokes] = useState<StrokeData[]>([]);
-  const [currentPath, setCurrentPath] = useState<string[]>([]);
-  const [isErasing, setIsErasing] = useState<boolean>(false);
-  const [imageSize, setImageSize] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [exportMode, setExportMode] = useState(false);
+  const maskOverlayUri = useMemo(() => {
+    if (!maskParam) return undefined
+    const value = Array.isArray(maskParam) ? maskParam[0] : maskParam
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      return value
+    }
+  }, [maskParam])
 
-  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  const viewShotRef = useRef<any>(null);
-  const strokeHistoryRef = useRef<StrokeData[][]>([]);
+  const insets = useSafeAreaInsets()
+
+  const [brushSize, setBrushSize] = useState(20)
+  const [showSizeSlider, setShowSizeSlider] = useState<'brush' | 'eraser' | null>(null)
+  const [strokes, setStrokes] = useState<StrokeData[]>([])
+  const [currentPath, setCurrentPath] = useState<string[]>([])
+  const [isErasing, setIsErasing] = useState<boolean>(false)
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [exportMode, setExportMode] = useState(false)
+
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null)
+  const viewShotRef = useRef<ViewShot | null>(null)
+  const strokeHistoryRef = useRef<StrokeData[][]>([])
 
   useEffect(() => {
     if (!uri) {
-      Alert.alert("Error", "No se proporcionó una imagen válida.");
-      setLoading(false);
-      return;
+      Alert.alert('Error', 'No se proporciono una imagen valida.')
+      setLoading(false)
+      return
     }
 
     Image.getSize(
       uri,
       (width, height) => {
-        const screenWidth = Dimensions.get("window").width;
-        // Altura disponible menos toolbar (~80) y áreas seguras superior/inferior
-        const TOOLBAR_ESTIMATED = 80;
-        const screenHeight = Dimensions.get("window").height - insets.top - insets.bottom - TOOLBAR_ESTIMATED;
-        const scaleFactor = Math.min(
-          screenWidth / width,
-          screenHeight / height
-        );
+        const screenWidth = Dimensions.get('window').width
+        const TOOLBAR_ESTIMATED = 80
+        const screenHeight =
+          Dimensions.get('window').height - insets.top - insets.bottom - TOOLBAR_ESTIMATED
+        const scaleFactor = Math.min(screenWidth / width, screenHeight / height)
         setImageSize({
           width: width * scaleFactor,
           height: height * scaleFactor,
-        });
-        setLoading(false);
+        })
+        setLoading(false)
       },
       () => {
-        Alert.alert("Error", "No se pudo cargar la imagen.");
-        setLoading(false);
+        Alert.alert('Error', 'No se pudo cargar la imagen.')
+        setLoading(false)
       }
-    );
-  }, [uri, insets.top, insets.bottom]);
+    )
+  }, [uri, insets.top, insets.bottom])
 
   const startNewPath = (x: number, y: number) => {
-    setCurrentPath([`M ${x} ${y}`]);
-    lastPosRef.current = { x, y };
-  };
+    setCurrentPath([`M ${x} ${y}`])
+    lastPosRef.current = { x, y }
+  }
 
   const appendToPath = (x: number, y: number) => {
-    setCurrentPath((prev) => [...prev, `L ${x} ${y}`]);
-    lastPosRef.current = { x, y };
-  };
+    setCurrentPath((prev) => [...prev, `L ${x} ${y}`])
+    lastPosRef.current = { x, y }
+  }
 
   const commitPath = () => {
-    if (currentPath.length === 0) return;
-    const fullPath = currentPath.join(" ");
-    
-    // Guardar el estado actual en el historial antes de modificar
-    strokeHistoryRef.current = [...strokeHistoryRef.current, strokes];
-    
+    if (currentPath.length === 0) return
+    const fullPath = currentPath.join(' ')
+
+    strokeHistoryRef.current = [...strokeHistoryRef.current, strokes]
+
     setStrokes((prev) => [
       ...prev,
       { path: fullPath, isEraser: isErasing, strokeWidth: brushSize },
-    ]);
-    setCurrentPath([]);
-    lastPosRef.current = null;
-  };
+    ])
+    setCurrentPath([])
+    lastPosRef.current = null
+  }
 
   const gesture = Gesture.Pan()
     .onStart((event) => runOnJS(startNewPath)(event.x, event.y))
     .onUpdate((event) => runOnJS(appendToPath)(event.x, event.y))
-    .onEnd(() => runOnJS(commitPath)());
+    .onEnd(() => runOnJS(commitPath)())
 
   const handleUndo = () => {
     if (strokeHistoryRef.current.length > 0) {
-      const previousState = strokeHistoryRef.current.pop();
-      setStrokes(previousState || []);
+      const previousState = strokeHistoryRef.current.pop()
+      setStrokes(previousState || [])
     } else {
-      setStrokes([]);
+      setStrokes([])
     }
-  };
+  }
 
-  const saveImage = async (isMask = false) => {
+  const handleConfirmMask = async () => {
     try {
-      // Solicitar permisos para guardar en la galería si no están concedidos
-      const perm = await MediaLibrary.getPermissionsAsync();
-      if (!perm.granted) {
-        const req = await MediaLibrary.requestPermissionsAsync();
-        if (!req.granted) {
-          Alert.alert(
-            "Permiso requerido",
-            "Debes otorgar permisos de galería para guardar la máscara."
-          );
-          return;
-        }
+      setExportMode(true)
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      const capturedUri = await viewShotRef.current?.capture?.()
+      if (!capturedUri) {
+        throw new Error('capture_failed')
       }
-
-      setExportMode(true);
-      setTimeout(async () => {
-        const uri = await viewShotRef.current.capture();
-        await MediaLibrary.saveToLibraryAsync(uri);
-        Alert.alert(
-          "Éxito",
-          isMask
-            ? "Máscara exportada correctamente."
-            : "Imagen guardada correctamente."
-        );
-        setExportMode(false);
-      }, 100);
+      setMaskDraft({ uri: capturedUri, createdAt: Date.now() })
+      Alert.alert('Mascara lista', 'La mascara se ha generado para la gestion.')
+      router.back()
     } catch (error) {
-      console.error("Error saving image:", error);
-      Alert.alert("Error", "No se pudo guardar la imagen.");
-      setExportMode(false);
+      console.error('Error exporting mask:', error)
+      Alert.alert('Error', 'No se pudo generar la mascara.')
+    } finally {
+      setExportMode(false)
     }
-  };
+  }
 
   const clearCanvas = () => {
-    strokeHistoryRef.current = [...strokeHistoryRef.current, strokes];
-    setStrokes([]);
-    setCurrentPath([]);
-  };
+    strokeHistoryRef.current = [...strokeHistoryRef.current, strokes]
+    setStrokes([])
+    setCurrentPath([])
+  }
 
   if (loading || !imageSize) {
     return (
@@ -180,36 +169,55 @@ export default function EditorScreen() {
         <ActivityIndicator size="large" color="#4a90e2" />
         <Text style={styles.loadingText}>Cargando imagen...</Text>
       </View>
-    );
+    )
   }
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <TouchableOpacity
         onPress={() => router.replace('/professional')}
-        style={{ position: 'absolute', top: insets.top + 8, left: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20 }}
+        style={{
+          position: 'absolute',
+          top: insets.top + 8,
+          left: 12,
+          zIndex: 10,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          padding: 8,
+          borderRadius: 20,
+        }}
       >
         <Ionicons name="home" size={20} color="#fff" />
       </TouchableOpacity>
-      <View style={[styles.editorContainer, { paddingTop: insets.top }] }>
+      <View style={[styles.editorContainer, { paddingTop: insets.top }]}>
         <ViewShot
           ref={viewShotRef}
-          options={{ format: "jpg", quality: 1 }}
+          options={{ format: 'jpg', quality: 1 }}
           style={[
             styles.imageContainer,
             {
               width: imageSize.width,
               height: imageSize.height,
-              backgroundColor: exportMode ? "black" : "transparent",
+              backgroundColor: exportMode ? 'black' : 'transparent',
             },
           ]}
         >
-          {!exportMode && (
+          {!exportMode && uri && (
             <Image
               source={{ uri }}
+              style={[styles.image, { width: imageSize.width, height: imageSize.height }]}
+              resizeMode="contain"
+            />
+          )}
+          {maskOverlayUri && (
+            <Image
+              source={{ uri: maskOverlayUri }}
               style={[
-                styles.image,
-                { width: imageSize.width, height: imageSize.height },
+                styles.maskOverlay,
+                {
+                  width: imageSize.width,
+                  height: imageSize.height,
+                  opacity: exportMode ? 1 : 0.35,
+                },
               ]}
               resizeMode="contain"
             />
@@ -221,28 +229,25 @@ export default function EditorScreen() {
                 { width: imageSize.width, height: imageSize.height },
               ]}
             >
-              {/* Renderizamos todos los trazos en orden */}
-              {strokes.map((stroke, i) => (
+              {strokes.map((stroke, index) => (
                 <Path
-                  key={`stroke-${i}`}
+                  key={`stroke-${index}`}
                   d={stroke.path}
                   stroke={getStrokeColor(stroke.isEraser, exportMode)}
                   strokeWidth={stroke.strokeWidth}
-                  fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  fill="none"
                 />
               ))}
-              
-              {/* Trazo actual en progreso */}
               {currentPath.length > 0 && (
                 <Path
-                  d={currentPath.join(" ")}
+                  d={currentPath.join(' ')}
                   stroke={getStrokeColor(isErasing, exportMode)}
                   strokeWidth={brushSize}
-                  fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  fill="none"
                 />
               )}
             </Svg>
@@ -253,12 +258,10 @@ export default function EditorScreen() {
       {showSizeSlider && (
         <View style={styles.sliderContainer}>
           <Text style={styles.sliderLabel}>
-            {showSizeSlider === "brush"
-              ? "Tamaño de pincel"
-              : "Tamaño de borrador"}
+            {showSizeSlider === 'brush' ? 'Tamano de pincel' : 'Tamano de borrador'}
           </Text>
           <Slider
-            style={{ width: "80%", height: 40 }}
+            style={{ width: '80%', height: 40 }}
             minimumValue={5}
             maximumValue={100}
             value={brushSize}
@@ -269,7 +272,7 @@ export default function EditorScreen() {
           />
           <Text style={styles.sliderValue}>{Math.round(brushSize)}px</Text>
           <TouchableOpacity onPress={() => setShowSizeSlider(null)}>
-            <Text style={{ color: "#4a90e2", marginTop: 5 }}>Cerrar</Text>
+            <Text style={{ color: '#4a90e2', marginTop: 5 }}>Cerrar</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -278,36 +281,29 @@ export default function EditorScreen() {
         <TouchableOpacity
           style={[styles.toolButton, !isErasing && styles.activeToolButton]}
           onPress={() => setIsErasing(false)}
-          onLongPress={() => setShowSizeSlider("brush")}
+          onLongPress={() => setShowSizeSlider('brush')}
         >
-          <Brush color={!isErasing ? "white" : "#333"} size={24} />
-          <Text style={[styles.toolText, !isErasing && styles.activeToolText]}>
-            Pintar
-          </Text>
+          <Brush color={!isErasing ? 'white' : '#333'} size={24} />
+          <Text style={[styles.toolText, !isErasing && styles.activeToolText]}>Pintar</Text>
         </TouchableOpacity>
-        {/* 
+
         <TouchableOpacity
           style={[styles.toolButton, isErasing && styles.activeToolButton]}
           onPress={() => setIsErasing(true)}
-          onLongPress={() => setShowSizeSlider("eraser")}
+          onLongPress={() => setShowSizeSlider('eraser')}
         >
-          <Eraser color={isErasing ? "white" : "#333"} size={24} />
-          <Text style={[styles.toolText, isErasing && styles.activeToolText]}>
-            Borrar
-          </Text>
+          <Eraser color={isErasing ? 'white' : '#333'} size={24} />
+          <Text style={[styles.toolText, isErasing && styles.activeToolText]}>Borrar</Text>
         </TouchableOpacity>
-*/}
+
         <TouchableOpacity style={styles.toolButton} onPress={handleUndo}>
           <Undo2 color="#333" size={24} />
           <Text style={styles.toolText}>Deshacer</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => saveImage(true)}
-        >
+        <TouchableOpacity style={styles.toolButton} onPress={handleConfirmMask}>
           <Layers2 color="#333" size={24} />
-          <Text style={styles.toolText}>Máscara</Text>
+          <Text style={styles.toolText}>Guardar mascara</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.toolButton} onPress={clearCanvas}>
@@ -316,54 +312,59 @@ export default function EditorScreen() {
         </TouchableOpacity>
       </View>
     </GestureHandlerRootView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
   editorContainer: {
     flex: 0.92,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, fontSize: 16, color: "#666" },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
   imageContainer: {
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  image: { position: "absolute", top: 0, left: 0 },
-  drawingSurface: { position: "absolute", top: 0, left: 0 },
+  image: { position: 'absolute', top: 0, left: 0 },
+  maskOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  drawingSurface: { position: 'absolute', top: 0, left: 0 },
   toolbar: {
     flex: 0.08,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     padding: 2,
-    backgroundColor: "white",
+    backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: "#ddd",
-    width: "100%",
+    borderTopColor: '#ddd',
+    width: '100%',
   },
   toolButton: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 10,
   },
-  activeToolButton: { backgroundColor: "#4a90e2" },
-  toolText: { marginTop: 4, fontSize: 12, color: "#333" },
-  activeToolText: { color: "#fff" },
+  activeToolButton: { backgroundColor: '#4a90e2' },
+  toolText: { marginTop: 4, fontSize: 12, color: '#333' },
+  activeToolText: { color: '#fff' },
   sliderContainer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 100,
     left: 0,
     right: 0,
-    alignItems: "center",
-    backgroundColor: "#fff",
+    alignItems: 'center',
+    backgroundColor: '#fff',
     padding: 10,
     borderRadius: 10,
     marginHorizontal: 20,
@@ -372,12 +373,14 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: 14,
     marginBottom: 5,
-    color: "#333",
-    fontWeight: "500",
+    color: '#333',
+    fontWeight: '500',
   },
   sliderValue: {
     fontSize: 12,
-    color: "#666",
+    color: '#666',
     marginTop: 2,
   },
-});
+})
+
+

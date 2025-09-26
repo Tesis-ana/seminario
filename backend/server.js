@@ -37,7 +37,7 @@ await db.sequelize.sync({ alter: true });
       console.log("🗄️ Actualización de base de datos lista.");
       return;
     } catch (error) {
-      console.error(`❌ Error al conectar a la base de datos (Intento ${attempt}):`, error.message);
+      console.error(`❌ Error al conectar a la base de datos (Intento ${attempt}):`, error.message,error);
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
   }

@@ -1,3 +1,5 @@
+import * as FileSystem from "expo-file-system"
+
 export interface User {
   rut: string
   nombre: string
@@ -34,15 +36,47 @@ export interface Consulta {
   notas: string
 }
 
-const API_URL = 'http://192.168.1.91:5000'
+export interface SegmentacionResponse {
+  message: string
+  segmentacionId: number
+}
+
+export interface PwatscoreResponse {
+  message: string
+  pwatscoreId: number
+  categorias: {
+    cat3: number
+    cat4: number
+    cat5: number
+    cat6: number
+    cat7: number
+    cat8: number
+  }
+}
+
+export interface PwatscoreUpdatePayload {
+  id: number
+  cat1: number
+  cat2: number
+  cat3: number
+  cat4: number
+  cat5: number
+  cat6: number
+  cat7: number
+  cat8: number
+  evaluador?: string
+  observaciones?: string
+}
+
+export const API_URL = "http://192.168.1.91:5000"
 // TODO: replace with secure token retrieval
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJkb2N0b3IiLCJpYXQiOjE3NTg2NDY4MTF9.eQKPcmu6zxAeo-Z0GlKEJN1S7smtM6fLr3ErjTuhAJA'
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJydXQiOiIxMS4xMTEuMTExLTEiLCJyb2wiOiJhZG1pbiIsImlhdCI6MTc1ODg2Mjg0MH0.7qaKB9Qr9Cyw_ao_p51Mr_IawVT54l__QUVvVEFFWc8"
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${TOKEN}`,
       ...(options.headers || {}),
     },
@@ -55,7 +89,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function getMyProfessional(): Promise<Profesional> {
-  return request('/profesionales/me')
+  return request("/profesionales/me")
 }
 
 export async function getPatientsForProfessional(id: number): Promise<Paciente[]> {
@@ -63,8 +97,8 @@ export async function getPatientsForProfessional(id: number): Promise<Paciente[]
 }
 
 export async function searchPatientByRut(rut: string): Promise<Paciente> {
-  return request('/pacientes/buscar-rut', {
-    method: 'POST',
+  return request("/pacientes/buscar-rut", {
+    method: "POST",
     body: JSON.stringify({ rut }),
   })
 }
@@ -74,8 +108,8 @@ export async function registerAttention(
   profesional_id: number,
   notas: string
 ) {
-  return request('/atenciones', {
-    method: 'POST',
+  return request("/atenciones", {
+    method: "POST",
     body: JSON.stringify({ paciente_id, profesional_id, notas }),
   })
 }
@@ -93,14 +127,14 @@ export async function uploadPatientImage(
   imageUri: string
 ): Promise<Imagen> {
   const formData = new FormData()
-  formData.append('id', String(pacienteId))
-  formData.append('imagen', {
+  formData.append("id", String(pacienteId))
+  formData.append("imagen", {
     uri: imageUri,
-    name: 'photo.jpg',
-    type: 'image/jpeg',
+    name: "photo.jpg",
+    type: "image/jpeg",
   } as any)
   const res = await fetch(`${API_URL}/imagenes`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${TOKEN}`,
     },
@@ -111,23 +145,22 @@ export async function uploadPatientImage(
     throw new Error(message || res.statusText)
   }
   const json = await res.json()
-  // Backend devuelve { message, imagen }. Retornamos solo la entidad Imagen.
   return json.imagen as Imagen
 }
 
 export async function createManualSegmentation(
   imageId: number,
   maskUri: string
-) {
+): Promise<SegmentacionResponse> {
   const formData = new FormData()
-  formData.append('id', String(imageId))
-  formData.append('imagen', {
+  formData.append("id", String(imageId))
+  formData.append("imagen", {
     uri: maskUri,
-    name: 'mask.jpg',
-    type: 'image/jpeg',
+    name: "mask.jpg",
+    type: "image/jpeg",
   } as any)
   const res = await fetch(`${API_URL}/segmentaciones/manual`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${TOKEN}`,
     },
@@ -140,16 +173,67 @@ export async function createManualSegmentation(
   return res.json()
 }
 
-export async function createAutomaticSegmentation(imageId: number) {
-  return request('/segmentaciones/automatico', {
-    method: 'POST',
+export async function updateSegmentationMask(
+  segmentationId: number,
+  maskUri: string
+): Promise<SegmentacionResponse> {
+  const formData = new FormData()
+  formData.append("id", String(segmentationId))
+  formData.append("imagen", {
+    uri: maskUri,
+    name: "mask.jpg",
+    type: "image/jpeg",
+  } as any)
+  const res = await fetch(`${API_URL}/segmentaciones/editar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+    },
+    body: formData,
+  })
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message || res.statusText)
+  }
+  return res.json()
+}
+
+export async function createAutomaticSegmentation(imageId: number): Promise<SegmentacionResponse> {
+  return request("/segmentaciones/automatico", {
+    method: "POST",
     body: JSON.stringify({ id: imageId }),
   })
 }
 
-export async function calculatePwatscore(imageId: number) {
-  return request('/pwatscore', {
-    method: 'POST',
+export async function downloadSegmentationMask(imageId: number): Promise<string> {
+  const target = `${FileSystem.cacheDirectory}mask_${imageId}_${Date.now()}.jpg`
+  const result = await FileSystem.downloadAsync(
+    `${API_URL}/segmentaciones/${imageId}/mask`,
+    target,
+    {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+      },
+    }
+  )
+
+  if (result.status && result.status >= 400) {
+    throw new Error("No se pudo descargar la mascara.")
+  }
+
+  return result.uri
+}
+
+export async function calculatePwatscore(imageId: number): Promise<PwatscoreResponse> {
+  return request("/pwatscore", {
+    method: "POST",
     body: JSON.stringify({ id: imageId }),
+  })
+}
+
+export async function updatePwatscore(payload: PwatscoreUpdatePayload) {
+  return request("/pwatscore", {
+    method: "PUT",
+    body: JSON.stringify(payload),
   })
 }

@@ -3,7 +3,7 @@ const fs = require('fs');
 const multer = require('multer');
 
 // Shared configuration for image uploads (JPEG only, up to 5MB)
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_IMAGE_SIZE = 200 * 1024 * 1024; // 5 MB
 const storage = multer.memoryStorage();
 
 const uploadSingleImage = multer({
@@ -47,7 +47,7 @@ function respondMulterError(err, res) {
     res.status(400).json({ message: 'Solo se aceptan imágenes JPG.' });
     return true;
   }
-  res.status(400).json({ message: 'Error al subir la imagen.' });
+  res.status(400).json({ message: 'Error al subir la imagen.', err });
   return true;
 }
 

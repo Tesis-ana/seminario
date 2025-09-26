@@ -20,7 +20,7 @@ const Op = db.Sequelize.Op;
 
 // PATH seguro para procesos hijos: solo directorios estándar y no escribibles
 const RESOLVED_SAFE_PATH = process.platform === 'win32'
-  ? 'C\\\Windows\\\System32'
+  ? 'C\\Windows\\System32'
   : '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 
 const listarSegmentacions = async (req, res) => {
@@ -83,7 +83,7 @@ const crearSegmentacionManual = (req, res) => {
       }
       await segmentacion.save();
       return res.status(201).json({
-        message: 'Segmentacion creada correctamente.',
+        message: 'Segmentacion automatica creada correctamente.',
         segmentacionId: segmentacion.id,
       });
     } catch (err) {
@@ -107,48 +107,114 @@ const crearSegmentacionAutomatica = async (req, res) => {
     return res.status(404).json({ message: 'La imagen no existe.' });
   }
 
-  // 2) Preparar comando y args
+  // 2) Estrategias para ejecutar PWAT.py sin depender solo de conda
   const scriptDir = path.join(__dirname, '../../categorizador');
-  const cmd = process.env.CONDA_BIN || 'conda';
-  const args = [
-    'run', '-n', 'pyradiomics_env12',
-    'python', path.join(scriptDir, 'PWAT.py'),
+  const scriptPath = path.join(scriptDir, 'PWAT.py');
+  const baseArgs = [
     '--mode', 'predecir_mascara',
     '--image_path', imagen.nombre_archivo,
   ];
 
-  // 3) Función para ejecutar el child process como promesa
-  const ejecutarScript = () =>
+  const envName = process.env.CATEGORIZADOR_CONDA_ENV || 'pyradiomics';
+  const forceConda = (process.env.CATEGORIZADOR_FORCE_CONDA ?? 'true').toLowerCase() !== 'false';
+  const commandSpecs = [];
+  const seenSpecs = new Set();
+
+  function pushCommandSpec(spec) {
+    const key = `${spec.cmd}__${spec.args.join(' ')}`;
+    if (seenSpecs.has(key)) return;
+    commandSpecs.push(spec);
+    seenSpecs.add(key);
+  }
+
+  const condaExecutable = process.env.CONDA_BIN || 'conda';
+  pushCommandSpec({
+    label: 'conda',
+    cmd: condaExecutable,
+    args: ['run', '-n', envName, 'python', scriptPath, ...baseArgs],
+    envPath: process.env.PATH,
+  });
+
+  if (!forceConda) {
+    const pythonOverride = process.env.CATEGORIZADOR_PYTHON;
+    if (pythonOverride) {
+      pushCommandSpec({
+        label: 'custom python',
+        cmd: pythonOverride,
+        args: [scriptPath, ...baseArgs],
+        envPath: process.env.PATH,
+      });
+    }
+
+    pushCommandSpec({
+      label: 'system python',
+      cmd: 'python',
+      args: [scriptPath, ...baseArgs],
+      envPath: process.env.PATH,
+    });
+  }
+
+  const runCommand = (spec) =>
     new Promise((resolve, reject) => {
-      const proc = spawn(cmd, args, {
+      const pathEnv = spec.envPath ?? RESOLVED_SAFE_PATH;
+      const proc = spawn(spec.cmd, spec.args, {
         cwd: scriptDir,
         shell: false,
-        env: { ...process.env, PATH: RESOLVED_SAFE_PATH },
+        env: { ...process.env, PATH: pathEnv },
       });
 
       let stdout = '';
       let stderr = '';
 
-      proc.stdout.on('data', (data) => {
-        stdout += data;
-      });
-      proc.stderr.on('data', (data) => {
-        stderr += data;
-      });
+      if (proc.stdout) {
+        proc.stdout.on('data', (data) => {
+          stdout += data;
+        });
+      }
 
-      proc.on('error', (err) => {
-        // Error al arrancar el proceso (p.ej. conda no en PATH)
-        reject(new Error(`Fallo al lanzar el proceso: ${err.message}`));
+      if (proc.stderr) {
+        proc.stderr.on('data', (data) => {
+          stderr += data;
+        });
+      }
+
+      proc.on('error', (error) => {
+        const wrapped = new Error(`Fallo al lanzar el proceso (${spec.cmd}): ${error.message}`);
+        wrapped.code = error.code || error.errno;
+        wrapped.isSpawnError = true;
+        wrapped.originalError = error;
+        reject(wrapped);
       });
 
       proc.on('close', (code) => {
         if (code === 0) {
           resolve(stdout);
         } else {
-          reject(new Error(`El script devolvió código ${code}: ${stderr}`));
+          const failure = new Error(`El script devolvio codigo ${code}: ${stderr}`);
+          failure.code = code;
+          failure.stderr = stderr;
+          reject(failure);
         }
       });
     });
+
+  const ejecutarScript = async () => {
+    let lastError = null;
+    for (const spec of commandSpecs) {
+      try {
+        await runCommand(spec);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (error.isSpawnError || error.code === 'ENOENT') {
+          console.warn(`crearSegmentacionAutomatica: comando ${spec.cmd} no disponible (${error.message}).`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError || new Error('No se pudo ejecutar PWAT.py con ninguna estrategia disponible.');
+  };
 
   try {
     // 4) Ejecutar y esperar
@@ -171,14 +237,14 @@ const crearSegmentacionAutomatica = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: 'Segmentación automática creada correctamente.',
+      message: 'Segmentacion automatica creada correctamente.',
       segmentacionId: segmentacion.id,
     });
   } catch (err) {
     // Un único catch para errores de spawn o de BD
     console.error('Error en crearSegmentacionAutomatica:', err);
     return res.status(500).json({
-      message: 'Error al crear segmentación automática.',
+      message: 'Error al crear segmentacion automatica.',
       error: err.message,
     });
   }
@@ -250,12 +316,12 @@ const descargarMascara = async (req, res) => {
   try {
     const seg = await db.Segmentacion.findOne({ where: { imagen_id: id } });
     if (!seg) {
-      return res.status(404).json({ message: 'Segmentación no encontrada.' });
+      return res.status(404).json({ message: 'Segmentacion no encontrada.' });
     }
     return res.sendFile(path.resolve(seg.ruta_mascara));
   } catch (err) {
     return res.status(500).json({
-      message: 'Error al obtener máscara.',
+      message: 'Error al obtener mascara.',
       err,
     });
   }
