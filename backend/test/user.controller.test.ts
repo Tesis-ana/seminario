@@ -29,14 +29,14 @@ describe("User controller", () => {
     userCreateMock.mockImplementation(async (data: any) => ({ id: 1, ...data }));
     userFindAllMock.mockReset();
     userFindAllMock.mockImplementation(async () => [
-      { rut: "11.111.111-1", nombre: "Alice", correo: "alice@example.com", rol: "doctor" },
+      { rut: "20.147.725-5", nombre: "Alice", correo: "alice@example.com", rol: "doctor" },
     ]);
   });
 
-  it("crearUser crea un usuario con datos válidos", async () => {
+  it("crearUser crea un usuario con datos vï¿½lidos", async () => {
     hashMock.mockResolvedValueOnce("hashed-secret");
     const expectedUser = {
-      rut: "22.222.222-2",
+      rut: "20.731.153-7",
       nombre: "Bob",
       correo: "bob@example.com",
       rol: "doctor",
@@ -65,8 +65,8 @@ describe("User controller", () => {
 
   it("listarUsers retorna todos los usuarios", async () => {
     const users = [
-      { rut: "11.111.111-1", nombre: "Alice", correo: "alice@example.com", rol: "doctor" },
-      { rut: "22.222.222-2", nombre: "Bob", correo: "bob@example.com", rol: "enfermera" },
+      { rut: "20.147.725-5", nombre: "Alice", correo: "alice@example.com", rol: "doctor" },
+      { rut: "20.731.153-7", nombre: "Bob", correo: "bob@example.com", rol: "enfermera" },
     ];
     userFindAllMock.mockResolvedValueOnce(users);
     const res = createMockResponse();

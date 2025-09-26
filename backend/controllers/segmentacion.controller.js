@@ -115,7 +115,19 @@ const crearSegmentacionAutomatica = async (req, res) => {
     '--image_path', imagen.nombre_archivo,
   ];
 
-  const envName = process.env.CATEGORIZADOR_CONDA_ENV || 'pyradiomics';
+  const envNameRaw = process.env.CATEGORIZADOR_CONDA_ENV;
+  const envPrefix = process.env.CATEGORIZADOR_CONDA_PREFIX;
+  const envName = envNameRaw && envNameRaw.trim().length > 0 ? envNameRaw.trim() : 'radiomics';
+
+  function buildCondaRunArgs() {
+    if (envPrefix && envPrefix.trim().length > 0) {
+      return ['run', '-p', envPrefix.trim(), 'python', scriptPath, ...baseArgs];
+    }
+    if (envName.includes('/') || envName.includes('\\')) {
+      return ['run', '-p', envName, 'python', scriptPath, ...baseArgs];
+    }
+    return ['run', '-n', envName, 'python', scriptPath, ...baseArgs];
+  }
   const forceConda = (process.env.CATEGORIZADOR_FORCE_CONDA ?? 'true').toLowerCase() !== 'false';
   const commandSpecs = [];
   const seenSpecs = new Set();
@@ -127,12 +139,39 @@ const crearSegmentacionAutomatica = async (req, res) => {
     seenSpecs.add(key);
   }
 
-  const condaExecutable = process.env.CONDA_BIN || 'conda';
+  // Resolver CONDA_BIN (acepta carpeta o archivo) y si requiere shell (para .bat en Windows)
+  function resolveCondaCmd(input) {
+    const isWin = process.platform === 'win32';
+    const candidate = input || 'conda';
+    try {
+      if (candidate && fs.existsSync(candidate)) {
+        const stat = fs.lstatSync(candidate);
+        if (stat.isDirectory()) {
+          if (isWin) {
+            const bat = path.join(candidate, 'conda.bat');
+            const exe = path.join(candidate, 'conda.exe');
+            if (fs.existsSync(bat)) return { cmd: bat, shell: true };
+            if (fs.existsSync(exe)) return { cmd: exe, shell: false };
+            return { cmd: path.join(candidate, 'conda'), shell: true };
+          }
+          return { cmd: path.join(candidate, 'conda'), shell: false };
+        }
+        // Es archivo
+        if (isWin && /\.bat$/i.test(candidate)) return { cmd: candidate, shell: true };
+        return { cmd: candidate, shell: false };
+      }
+    } catch {}
+    // Fallback al nombre en PATH
+    return { cmd: 'conda', shell: isWin };
+  }
+
+  const { cmd: condaCmd, shell: condaShell } = resolveCondaCmd(process.env.CONDA_BIN);
   pushCommandSpec({
     label: 'conda',
-    cmd: condaExecutable,
-    args: ['run', '-n', envName, 'python', scriptPath, ...baseArgs],
+    cmd: condaCmd,
+    args: buildCondaRunArgs(),
     envPath: process.env.PATH,
+    shell: condaShell,
   });
 
   if (!forceConda) {
@@ -159,7 +198,7 @@ const crearSegmentacionAutomatica = async (req, res) => {
       const pathEnv = spec.envPath ?? RESOLVED_SAFE_PATH;
       const proc = spawn(spec.cmd, spec.args, {
         cwd: scriptDir,
-        shell: false,
+        shell: Boolean(spec.shell),
         env: { ...process.env, PATH: pathEnv },
       });
 

@@ -6,20 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="553e5ef7-5812-4dba-a394-c38f54753497" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/EditorScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/EditorScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/camera.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/camera.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/patient/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/patient/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/patient/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/patient/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/professional/patient/upload-image.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/patient/upload-image.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/search.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/search.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/local.properties" beforeDir="false" afterPath="$PROJECT_DIR$/local.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/middleware/token.middleware.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/middleware/token.middleware.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/pages/registrar-atencion.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/pages/registrar-atencion.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/controllers/imagen.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/controllers/imagen.controller.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/controllers/segmentacion.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/controllers/segmentacion.controller.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

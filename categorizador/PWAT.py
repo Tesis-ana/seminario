@@ -64,8 +64,8 @@ import json
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'modelos')
-IMGS_DIR = os.path.join(BASE_DIR, 'predicts', 'imgs')
-MASKS_DIR = os.path.join(BASE_DIR, 'predicts', 'masks')
+IMGS_DIR = os.path.join(BASE_DIR, '../backend/categorizador/predicts', 'imgs')
+MASKS_DIR = os.path.join(BASE_DIR, '../backend/categorizador/predicts', 'masks')
 
 model_path = os.path.join(MODEL_DIR ,'best_model.keras') 
 
@@ -166,7 +166,7 @@ def combined_loss(y_true, y_pred):
 
 # 3. Cargar el modelo
 # Definir el directorio de salida (modifica esta ruta según tus necesidades)
-output_dir = './predicts'
+output_dir = '../backend/categorizador/predicts'
 os.makedirs(output_dir, exist_ok=True)
 
 # Directorio para guardar las predicciones

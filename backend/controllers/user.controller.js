@@ -1,6 +1,6 @@
 
 const db = require("../models");
-const bcrypt = require('bcrypt');
+const getBcrypt = () => require('bcrypt');
 const Op = db.Sequelize.Op;
 const tokenfunc= require("../middleware/token.middleware.js");
 
@@ -22,6 +22,7 @@ const crearUser = async (req, res) => {
     try {
         const { nombre,correo,contra,rol,rut} = req.body;
         console.log(req.body);
+        const bcrypt = getBcrypt();
         const hashedPassword = await bcrypt.hash(contra, saltRounds);
         const data = await db.User.create({ rut,nombre ,correo ,rol, contrasena_hash: hashedPassword });
         return res.status(201).json(data);
@@ -39,6 +40,7 @@ const crearUsersBulk = async (req, res) => {
         return res.status(400).json({ message: 'Lista de usuarios requerida' });
     }
     try {
+        const bcrypt = getBcrypt();
         for (const u of users) {
             const hashedPassword = await bcrypt.hash(u.contra || '1234', saltRounds);
             await db.User.create({
@@ -123,7 +125,9 @@ const obtenerUserActual = async (req, res) => {
 
 const login = async (req, res) => {
     const { rut, contra } = req.body;
+    console.log(rut,contra)
     try {
+        const bcrypt = getBcrypt();
         const user = await db.User.findOne({ where: { rut } });
         if (!user) {
             return res.status(404).json({ message: "Usuario no encontrado." });

@@ -19,8 +19,11 @@ process.env.DB_POOL_IDLE = process.env.DB_POOL_IDLE ?? "10000";
 const userFindOneMock = mock(async () => undefined as any);
 const pacienteCreateMock = mock(async (payload: any) => ({ id: 101, ...payload }));
 const atencionCreateMock = mock(async () => ({}));
-const imagenFindByPkMock = mock(async () => ({ id: 77, nombre_archivo: "predicts/imgs/caso.jpg" }));
-const segmentacionCreateMock = mock(async (payload: any) => ({ id: 6, ...payload }));
+const imagenFindByPkMock = mock(async () => ({ id: 77, nombre_archivo: "../categorizador/predicts/imgs/1_1758858838874.jpg" }));
+const imagenFindOneMock = mock(async () => ({ id: 77, nombre_archivo: "predicts/imgs/caso.jpg" }));
+const segmentacionFindOneMock = mock(async () => ({ id: 333, ruta_mascara: "/virtual/masks/caso.jpg" }));
+const segmentacionCreateMock = mock(async (payload: any) => ({ id: 2, ...payload }));
+const pwatscoreCreateMock = mock(async (payload: any) => ({ id: 702, ...payload }));
 const ensureDirExistsMock = mock(() => {});
 
 mock.module("../models", () => ({
@@ -28,8 +31,9 @@ mock.module("../models", () => ({
   User: { findOne: userFindOneMock },
   Paciente: { create: pacienteCreateMock },
   Atencion: { create: atencionCreateMock },
-  Imagen: { findByPk: imagenFindByPkMock },
-  Segmentacion: { create: segmentacionCreateMock },
+  Imagen: { findByPk: imagenFindByPkMock, findOne: imagenFindOneMock },
+  Segmentacion: { create: segmentacionCreateMock, findOne: segmentacionFindOneMock },
+  PWATScore: { create: pwatscoreCreateMock },
 }));
 
 mock.module("../controllers/utils/fileUpload.js", () => ({
@@ -41,6 +45,7 @@ mock.module("../controllers/utils/fileUpload.js", () => ({
 }));
 
 const segmentacionController = await import("../controllers/segmentacion.controller.js");
+const pwatscoreController = await import("../controllers/pwatscore.controller.js");
 
 type SpawnMock = ReturnType<typeof mock<(cmd: string, args: string[], opts: any) => any>>;
 
@@ -186,13 +191,37 @@ beforeEach(() => {
     nombre_archivo: "predicts/imgs/caso.jpg",
   }));
 
+  imagenFindOneMock.mockReset();
+  imagenFindOneMock.mockImplementation(async () => ({
+    id: 77,
+    nombre_archivo: "predicts/imgs/caso.jpg",
+  }));
+
   segmentacionCreateMock.mockReset();
   segmentacionCreateMock.mockImplementation(async (payload: any) => ({ id: 909, ...payload }));
+
+  segmentacionFindOneMock.mockReset();
+  segmentacionFindOneMock.mockImplementation(async () => ({
+    id: 333,
+    ruta_mascara: "/virtual/masks/caso.jpg",
+  }));
+
+  pwatscoreCreateMock.mockReset();
+  pwatscoreCreateMock.mockImplementation(async (payload: any) => ({ id: 801, ...payload }));
 
   ensureDirExistsMock.mockReset();
 
   const spawnSuccess = createSpawnMock(0, { stdout: "ok" });
   segmentacionController.__setSpawn(spawnSuccess);
+  const pwatSpawnSuccess = createSpawnMock(0, { stdout: JSON.stringify({
+    Cat3: 0,
+    Cat4: 0,
+    Cat5: 0,
+    Cat6: 0,
+    Cat7: 0,
+    Cat8: 0,
+  }) });
+  pwatscoreController.__setSpawn(pwatSpawnSuccess as any);
 });
 
 describe("POST /users/login", () => {
@@ -218,6 +247,92 @@ describe("POST /users/login", () => {
     expect(response.status).toBe(401);
     expect(response.body?.message).toContain("incorrecta");
     expect(userFindOneMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("POST /pwatscore", () => {
+  it("ejecuta el script con conda y persiste las categorias devueltas", async () => {
+    const categorias = {
+      Cat3: 1,
+      Cat4: 2,
+      Cat5: 3,
+      Cat6: 4,
+      Cat7: 5,
+      Cat8: 6,
+    };
+    const spawnMock = createSpawnMock(0, { stdout: `${JSON.stringify(categorias)}\n` });
+    pwatscoreController.__setSpawn(spawnMock as any);
+
+    const app = buildApp();
+    const response = await sendRequest(app, "POST", "/pwatscore", { id: 77 }, createAuthHeader());
+
+    expect(response.status).toBe(201);
+    expect(response.body?.categorias).toEqual(
+      expect.objectContaining({
+        cat3: categorias.Cat3,
+        cat4: categorias.Cat4,
+        cat5: categorias.Cat5,
+        cat6: categorias.Cat6,
+        cat7: categorias.Cat7,
+        cat8: categorias.Cat8,
+      })
+    );
+
+    expect(pwatscoreCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cat3: categorias.Cat3,
+        cat4: categorias.Cat4,
+        cat5: categorias.Cat5,
+        cat6: categorias.Cat6,
+        cat7: categorias.Cat7,
+        cat8: categorias.Cat8,
+        imagen_id: 77,
+        segmentacion_id: 333,
+      })
+    );
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const [cmd, args] = spawnMock.mock.calls[0];
+    expect(String(cmd)).toContain("conda");
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "run",
+        "-n",
+        "pyradiomics_env12",
+        "python",
+        expect.stringContaining("PWAT.py"),
+        "--mode",
+        "predecir",
+        "--image_path",
+        "predicts/imgs/caso.jpg",
+        "--mask_path",
+        "caso.jpg",
+      ])
+    );
+  });
+
+  it("retorna 500 cuando el script externo finaliza con error", async () => {
+    const spawnMock = createSpawnMock(1, { stderr: "Traceback simulated" });
+    pwatscoreController.__setSpawn(spawnMock as any);
+
+    const app = buildApp();
+    const response = await sendRequest(app, "POST", "/pwatscore", { id: 77 }, createAuthHeader());
+
+    expect(response.status).toBe(500);
+    expect(String(response.body?.message)).toContain("Error al ejecutar");
+    expect(String(response.body?.error)).toContain("Traceback");
+    expect(pwatscoreCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("retorna 404 cuando no existe segmentacion asociada", async () => {
+    segmentacionFindOneMock.mockImplementationOnce(async () => null);
+
+    const app = buildApp();
+    const response = await sendRequest(app, "POST", "/pwatscore", { id: 77 }, createAuthHeader());
+
+    expect(response.status).toBe(404);
+    expect(String(response.body?.message)).toContain("segmentación");
+    expect(pwatscoreCreateMock).not.toHaveBeenCalled();
   });
 });
 
@@ -313,7 +428,6 @@ describe("POST /segmentaciones/automatico", () => {
     expect(String(response.body?.message)).toContain("Error al crear segmentacion");
   });
 });
-
 
 
 

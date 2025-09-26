@@ -76,9 +76,9 @@ describe("Segmentacion controller", () => {
 
     const [cmd, args] = spawnMock.mock.calls[0];
     expect(cmd).toBe("conda");
-    expect(args.slice(0, 4)).toEqual(["run", "-n", "pyradiomics_env12", "python"]);
+    expect(args.slice(0, 4)).toEqual(["run", "-n", "radiomics", "python"]);
 
-    const expectedMaskPath = path.join("/tmp/masks", "paciente-1.jpg");
+    const expectedMaskPath = path.join("/virtual/masks", "paciente-1.jpg");
     expect(segmentacionCreateMock).toHaveBeenCalledWith({
       imagen_id: 15,
       ruta_mascara: expectedMaskPath,

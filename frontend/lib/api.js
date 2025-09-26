@@ -1,4 +1,4 @@
-export const BACKEND_URL = 'http://localhost:5000';
+export const BACKEND_URL = 'http://201.187.233.130:5000';
 
 export async function apiFetch(path, options = {}) {
   const headers = options.headers || {};

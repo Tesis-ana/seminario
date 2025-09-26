@@ -37,6 +37,7 @@ const listarImagenesPaciente = async (req, res) => {
 };
 
 const subirImagen = (req, res) => {
+  console.log("Subir imagen called");
   upload(req, res, async function (err) {
     if (respondMulterError(err, res)) return;
     if (!req.file) {
