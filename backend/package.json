@@ -25,5 +25,8 @@
     "nodemon": "^3.1.10",
     "path": "^0.12.7",
     "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "@testcontainers/mysql": "^10.10.0"
   }
 }

@@ -6,16 +6,19 @@ meta {
 
 post {
   url: {{baseUrl}}/imagenes
-  body: json
+  body: multipartForm
   auth: inherit
-
-
 }
 
 body:json {
   {
     "TODO": "Actualizar payload"
   }
+}
+
+body:multipart-form {
+  id: 1
+  imagen: @file(C:\Users\Benjamin\Downloads\descarga.jpg)
 }
 
 settings {
