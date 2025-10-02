@@ -1,6 +1,3 @@
-categorizador/predicts
-categorizador/modelos
-categorizador/environment.yml
 template.aux
 template.bbl
 template.fdb_latexmk
@@ -12,14 +9,6 @@ template.out
 template.pdf
 template.synctex.gz
 template.toc
-categorizador/best_model.keras
-categorizador/Categoria3.pkl
-categorizador/Categoria4.joblib
-categorizador/Categoria5.joblib
-categorizador/Categoria6.pkl
-categorizador/Categoria7.joblib
-categorizador/Categoria8.joblib
-backend/environment.yml
 APP/.idea/deviceManager.xml
 APP/.idea/vcs.xml
 APP/.idea/caches/deviceStreaming.xml

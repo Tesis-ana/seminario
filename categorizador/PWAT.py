@@ -46,6 +46,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import RandomOverSampler
 from xgboost import XGBClassifier
+import xgboost
 import radiomics
 from joblib import load
 
@@ -70,12 +71,16 @@ MASKS_DIR = os.path.join(BASE_DIR, '../backend/categorizador/predicts', 'masks')
 model_path = os.path.join(MODEL_DIR ,'best_model.keras') 
 
 
-with open(os.path.join(MODEL_DIR,"Categoria3.pkl"), "rb") as f:
-    Categoria3 = pickle.load(f)
+
+Categoria3 = xgboost.Booster()
+Categoria3.load_model(os.path.join(MODEL_DIR,"Categoria3.json"))
+
 Categoria4=load(os.path.join(MODEL_DIR,"Categoria4.joblib"))
 Categoria5=load(os.path.join(MODEL_DIR,"Categoria5.joblib"))
-with open(os.path.join(MODEL_DIR,"Categoria6.pkl"), "rb") as f:
-    Categoria6 = pickle.load(f)
+
+Categoria6 = xgboost.Booster()
+Categoria6.load_model(os.path.join(MODEL_DIR,"Categoria6.json"))
+
 Categoria7=load(os.path.join(MODEL_DIR,"Categoria7.joblib"))
 Categoria8=load(os.path.join(MODEL_DIR,"Categoria8.joblib"))
 

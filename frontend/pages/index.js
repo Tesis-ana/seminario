@@ -25,6 +25,40 @@ export default function Home() {
         }
     };
 
+    // Limpia y formatea un RUT chileno: agrega puntos y guión antes del dígito verificador
+    // Limita la parte numérica a 9 dígitos como máximo (por ejemplo 12.345.678)
+    const formatRut = (value) => {
+        if (!value) return '';
+        // Mantener sólo dígitos y K (mayúscula)
+        let cleaned = value.replace(/[^0-9kK]/g, '').toUpperCase();
+        if (cleaned.length <= 1) return cleaned;
+        // Limitar longitud limpia: hasta 9 números + 1 DV = 10 caracteres
+        // Si el usuario pegó algo muy largo, lo truncamos: tomar últimos (dv + 9 nums)
+        if (cleaned.length > 10) {
+            cleaned = cleaned.slice(cleaned.length - 10);
+        }
+        const dv = cleaned.slice(-1);
+        let nums = cleaned.slice(0, -1);
+        // Insertar puntos cada 3 dígitos desde la derecha
+        nums = nums.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return `${nums}-${dv}`;
+    };
+
+    const handleRutChange = (e) => {
+        const raw = e.target.value;
+        let cleaned = raw.replace(/[^0-9kK]/g, '').toUpperCase();
+        // Limitar la parte limpia a 9 dígitos + 1 DV = 10 caracteres
+        if (cleaned.length > 10) {
+            cleaned = cleaned.slice(0, 10);
+        }
+        // Si el usuario está escribiendo sólo 1 carácter, no pongas aún el guión/puntos
+        if (cleaned.length <= 1) {
+            setRut(cleaned);
+            return;
+        }
+        setRut(formatRut(cleaned));
+    };
+
     useEffect(() => {
         const validateToken = async () => {
             const stored = localStorage.getItem('token');
@@ -42,6 +76,7 @@ export default function Home() {
                     setToken(null);
                 }
             } catch (e) {
+                console.error('Error validating token', e);
                 localStorage.removeItem('token');
                 setToken(null);
             }
@@ -81,7 +116,9 @@ export default function Home() {
                         <input
                             placeholder='RUT'
                             value={rut}
-                            onChange={(e) => setRut(e.target.value)}
+                            onChange={handleRutChange}
+                            onBlur={() => setRut(formatRut(rut))}
+                            maxLength={12}
                         />
                         <input
                             type='password'

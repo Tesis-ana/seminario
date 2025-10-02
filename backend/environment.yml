@@ -1,0 +1,21 @@
+name: radiomics
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - numpy<2              # necesario para pyradiomics
+  - pandas
+  - scikit-image
+  - scikit-learn
+  - opencv=4.*
+  - pillow
+  - pynrrd
+  - simpleitk
+  - imbalanced-learn
+  - matplotlib
+  - tqdm
+  - xgboost
+  - pip
+  - pip:
+      - tensorflow==2.15.*   # en Windows viene como tensorflow-intel por debajo
+      - pyradiomics>=3.0,<3.1a0

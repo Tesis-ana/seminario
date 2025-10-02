@@ -6,10 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="553e5ef7-5812-4dba-a394-c38f54753497" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/professional/patient/upload-image.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/professional/patient/upload-image.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/controllers/imagen.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/controllers/imagen.controller.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/controllers/segmentacion.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/controllers/segmentacion.controller.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/controllers/pwatscore.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/controllers/pwatscore.controller.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/test/user.controller.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/test/user.controller.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/lib/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/lib/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/pages/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/pages/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -33,7 +33,7 @@ describe("User controller", () => {
     ]);
   });
 
-  it("crearUser crea un usuario con datos v�lidos", async () => {
+  it("crearUser crea un usuario con datos validos", async () => {
     hashMock.mockResolvedValueOnce("hashed-secret");
     const expectedUser = {
       rut: "20.731.153-7",
