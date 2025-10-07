@@ -3,6 +3,7 @@ const Op = db.Sequelize.Op;
 const path = require('path');
 const childProcess = require('child_process');
 
+// Usar spawn del módulo child_process por defecto; se puede sobreescribir en tests
 let spawn = childProcess.spawn;
 function __setSpawn(fn) {
     spawn = fn;
@@ -58,51 +59,165 @@ const predecirPwatscore = async (req, res) => {
 
         try {
             if (!fs.existsSync(imagenPathOnDisk)) {
-                return res
-                    .status(404)
-                    .json({
-                        message: 'Archivo de imagen no encontrado en el disco.',
-                        path: imagenPathOnDisk,
-                    });
+                return res.status(404).json({
+                    message: 'Archivo de imagen no encontrado en el disco.',
+                    path: imagenPathOnDisk,
+                });
             }
             if (!fs.existsSync(maskPathOnDisk)) {
-                return res
-                    .status(404)
-                    .json({
-                        message:
-                            'Archivo de máscara no encontrado en el disco.',
-                        path: maskPathOnDisk,
-                    });
+                return res.status(404).json({
+                    message: 'Archivo de máscara no encontrado en el disco.',
+                    path: maskPathOnDisk,
+                });
             }
             const imgStat = fs.statSync(imagenPathOnDisk);
             const maskStat = fs.statSync(maskPathOnDisk);
             if (!imgStat.isFile() || imgStat.size === 0) {
-                return res
-                    .status(400)
-                    .json({
-                        message:
-                            'El archivo de imagen está vacío o no es un archivo regular.',
-                        path: imagenPathOnDisk,
-                    });
+                return res.status(400).json({
+                    message:
+                        'El archivo de imagen está vacío o no es un archivo regular.',
+                    path: imagenPathOnDisk,
+                });
             }
             if (!maskStat.isFile() || maskStat.size === 0) {
-                return res
-                    .status(400)
-                    .json({
+                return res.status(400).json({
+                    message:
+                        'El archivo de máscara está vacío o no es un archivo regular.',
+                    path: maskPathOnDisk,
+                });
+            }
+
+            // Validación robusta del contenido de la máscara usando sharp
+            try {
+                const sharp = require('sharp');
+                const maskBuffer = fs.readFileSync(maskPathOnDisk);
+
+                // Verificar que la imagen se puede leer y obtener metadatos
+                const metadata = await sharp(maskBuffer).metadata();
+                if (
+                    !metadata.width ||
+                    !metadata.height ||
+                    metadata.width === 0 ||
+                    metadata.height === 0
+                ) {
+                    return res.status(400).json({
                         message:
-                            'El archivo de máscara está vacío o no es un archivo regular.',
+                            'La máscara no es una imagen válida o tiene dimensiones inválidas.',
                         path: maskPathOnDisk,
                     });
+                }
+
+                // Verificar el formato de la imagen
+                if (
+                    !['jpeg', 'jpg', 'png', 'tiff', 'webp'].includes(
+                        metadata.format
+                    )
+                ) {
+                    return res.status(400).json({
+                        message: `Formato de máscara no soportado: ${metadata.format}. Use JPEG, PNG, TIFF o WebP.`,
+                        path: maskPathOnDisk,
+                    });
+                }
+
+                const maskStats = await sharp(maskBuffer)
+                    .greyscale()
+                    .raw()
+                    .toBuffer({ resolveWithObject: true });
+
+                // Verificar si la máscara tiene pixeles no-cero (contenido segmentado)
+                const hasSegmentation = maskStats.data.some(
+                    (pixel) => pixel > 0
+                );
+                if (!hasSegmentation) {
+                    return res.status(400).json({
+                        message:
+                            'La máscara está vacía (no contiene regiones segmentadas). Por favor, proporcione una máscara válida con contenido segmentado.',
+                        path: maskPathOnDisk,
+                    });
+                }
+
+                console.log(
+                    `Máscara validada: ${metadata.width}x${metadata.height}, formato: ${metadata.format}, canales: ${metadata.channels}`
+                );
+
+                // Normalizar la máscara para asegurar compatibilidad con OpenCV
+                // Convertir a escala de grises de un solo canal y asegurar formato JPEG
+                console.log(
+                    `Normalizando máscara para compatibilidad con OpenCV...`
+                );
+                // Crear una imagen de un solo canal para compatibilidad con OpenCV
+                // Convertir a escala de grises binaria (0 o 255) para máxima compatibilidad
+                console.log(
+                    'Convirtiendo a imagen de un solo canal binaria...'
+                );
+                const normalizedBuffer = await sharp(maskBuffer)
+                    .greyscale() // Convertir a escala de grises
+                    .normalise() // Normalizar valores al rango completo 0-255
+                    .jpeg({ quality: 100, force: true }) // JPEG con máxima calidad
+                    .toBuffer();
+
+                // Crear un nombre temporal para la máscara normalizada
+                const tempMaskPath = maskPathOnDisk.replace(
+                    /\.[^.]+$/,
+                    '_normalized.jpg' // Cambiar a .jpg
+                );
+                fs.writeFileSync(tempMaskPath, normalizedBuffer);
+
+                // Verificar los metadatos de la imagen normalizada
+                const metadata_normalized = await sharp(
+                    normalizedBuffer
+                ).metadata();
+                console.log(
+                    `Máscara normalizada: ${metadata_normalized.width}x${metadata_normalized.height}, canales: ${metadata_normalized.channels}, espacio: ${metadata_normalized.space}`
+                );
+
+                // Actualizar la ruta para usar la máscara normalizada
+                baseArgs[baseArgs.length - 1] = path.basename(tempMaskPath);
+                console.log(`Usando máscara normalizada: ${tempMaskPath}`);
+
+                // Verificar que el archivo se creó correctamente
+                if (!fs.existsSync(tempMaskPath)) {
+                    return res.status(500).json({
+                        message: 'Error al crear la máscara normalizada.',
+                        path: tempMaskPath,
+                    });
+                }
+                console.log(
+                    `Máscara normalizada creada exitosamente. Tamaño: ${
+                        fs.statSync(tempMaskPath).size
+                    } bytes`
+                );
+
+                // Verificar que la máscara normalizada tenga contenido
+                const normalizedStats = await sharp(normalizedBuffer)
+                    .raw()
+                    .toBuffer({ resolveWithObject: true });
+
+                const hasSegmentationAfterNormalization =
+                    normalizedStats.data.some((pixel) => pixel > 0);
+                if (!hasSegmentationAfterNormalization) {
+                    return res.status(400).json({
+                        message:
+                            'La máscara normalizada está vacía. Verifique que la máscara original tenga contenido visible.',
+                        path: maskPathOnDisk,
+                    });
+                }
+            } catch (sharpError) {
+                console.error('Error validando máscara con sharp:', sharpError);
+                return res.status(400).json({
+                    message:
+                        'Error al validar la máscara. El archivo puede estar corrupto o no ser una imagen válida.',
+                    error: sharpError.message,
+                    path: maskPathOnDisk,
+                });
             }
         } catch (e) {
             console.error('Error comprobando archivos de imagen/mascara:', e);
-            return res
-                .status(500)
-                .json({
-                    message:
-                        'Error comprobando existencia de archivos de imagen/mascara.',
-                    error: e.message,
-                });
+            return res.status(500).json({
+                message:
+                    'Error comprobando existencia de archivos de imagen/mascara.',
+                error: e.message,
+            });
         }
 
         const envNameRaw = process.env.CATEGORIZADOR_CONDA_ENV;
@@ -235,6 +350,35 @@ const predecirPwatscore = async (req, res) => {
 
                 proc.on('close', (code) => {
                     if (code === 0) return resolve(stdout);
+
+                    // Manejar específicamente el error de máscara vacía
+                    if (stderr.includes('No labels found in this mask')) {
+                        const failure = new Error(
+                            'La máscara no contiene regiones segmentadas válidas. Asegúrese de que la máscara tenga contenido y no esté completamente vacía.'
+                        );
+                        failure.code = code;
+                        failure.stderr = stderr;
+                        failure.isMaskError = true;
+                        reject(failure);
+                        return;
+                    }
+
+                    // Manejar error de OpenCV con máscara corrupta/inválida
+                    if (
+                        stderr.includes('cv2.error') &&
+                        (stderr.includes('resize') ||
+                            stderr.includes('func != 0'))
+                    ) {
+                        const failure = new Error(
+                            'OpenCV no puede procesar la máscara. Esto puede deberse a un formato incompatible o imagen corrupta. La máscara ha sido normalizada automáticamente, pero el error persiste. Verifique que la máscara original sea válida.'
+                        );
+                        failure.code = code;
+                        failure.stderr = stderr;
+                        failure.isMaskError = true;
+                        reject(failure);
+                        return;
+                    }
+
                     const failure = new Error(
                         `El script devolvio codigo ${code}: ${stderr}`
                     );
@@ -248,8 +392,8 @@ const predecirPwatscore = async (req, res) => {
             let lastError = null;
             for (const spec of commandSpecs) {
                 try {
-                    await runCommand(spec);
-                    return;
+                    const result = await runCommand(spec);
+                    return result; // Retornar el stdout aquí
                 } catch (error) {
                     lastError = error;
                     if (error.isSpawnError || error.code === 'ENOENT') {
@@ -271,10 +415,40 @@ const predecirPwatscore = async (req, res) => {
 
         // Ejecutar
         const stdout = await ejecutarScript();
+
+        // Extraer solo la línea que contiene el JSON válido
         let resultado;
         try {
-            resultado = JSON.parse(stdout);
+            // Buscar la última línea que parece ser JSON válido
+            const lines = stdout
+                .trim()
+                .split('\n')
+                .filter((line) => line.trim());
+            let jsonLine = null;
+
+            // Buscar desde el final hacia atrás la primera línea que sea JSON válido
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i].trim();
+                if (line.startsWith('{') && line.endsWith('}')) {
+                    try {
+                        JSON.parse(line);
+                        jsonLine = line;
+                        break;
+                    } catch (e) {
+                        // Esta línea no es JSON válido, continuar
+                        continue;
+                    }
+                }
+            }
+
+            if (!jsonLine) {
+                throw new Error('No se encontró JSON válido en la salida');
+            }
+
+            resultado = JSON.parse(jsonLine);
         } catch (e) {
+            console.error('Error parseando salida del script:', e);
+            console.error('Salida completa:', stdout);
             return res.status(500).json({
                 message: 'Salida del script no JSON o vacía.',
                 error: e.message,
@@ -293,7 +467,6 @@ const predecirPwatscore = async (req, res) => {
             fecha_evaluacion: new Date(),
             observaciones: 'Evaluación realizada automáticamente.',
             imagen_id: imagen.id,
-            segmentacion_id: segmentacion.id,
         });
         if (!pwatscore) {
             return res
@@ -314,9 +487,29 @@ const predecirPwatscore = async (req, res) => {
         });
     } catch (err) {
         console.error('Error en predecirPwatscore:', err);
+
+        // Proporcionar mensajes de error más específicos
+        if (err.isMaskError) {
+            return res.status(400).json({
+                message: 'Error con la máscara de segmentación.',
+                error: err.message,
+                suggestion:
+                    'Verifique que la máscara tenga regiones segmentadas válidas (pixeles blancos/no-cero).',
+            });
+        }
+
+        if (err.isSpawnError) {
+            return res.status(500).json({
+                message: 'Error al ejecutar el script de predicción.',
+                error: err.message,
+                suggestion:
+                    'Verifique que el entorno Python esté configurado correctamente.',
+            });
+        }
+
         return res.status(500).json({
             message: 'Error al crear pwatscore.',
-            err: err.message || err,
+            error: err.message || err,
         });
     }
 };
@@ -324,7 +517,7 @@ const predecirPwatscore = async (req, res) => {
 const buscarPwatscore = async (req, res) => {
     const { id } = req.body;
     try {
-        const data = await db.PWATScore.findOne({ where: { id } });
+        const data = await db.PWATScore.findOne({ where: { imagen_id:id } });
         if (!data) {
             return res.status(404).json({ message: 'El pwatscore no existe.' });
         }

@@ -1,5 +1,4 @@
-
-const db = require("../models");
+const db = require('../models');
 const Op = db.Sequelize.Op;
 
 const listarPacientes = async (req, res) => {
@@ -8,7 +7,7 @@ const listarPacientes = async (req, res) => {
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al listar pacientes.",
+            message: 'Error al listar pacientes.',
             err,
         });
     }
@@ -16,35 +15,42 @@ const listarPacientes = async (req, res) => {
 
 const crearPaciente = async (req, res) => {
     try {
-        const { sexo , comentarios = null, user_id , profesional_id = null } = req.body;
+        const {
+            sexo,
+            comentarios = null,
+            user_id,
+            profesional_id = null,
+        } = req.body;
         if (!sexo || !user_id) {
-            return res.status(400).json({ message: 'Los campos sexo y user_id son obligatorios.' });
+            return res
+                .status(400)
+                .json({
+                    message: 'Los campos sexo y user_id son obligatorios.',
+                });
         }
         const fecha_ingreso = new Date();
         const nuevoPaciente = await db.Paciente.create({
             sexo,
             fecha_ingreso,
             comentarios,
-            user_id
+            user_id,
         });
 
         if (profesional_id) {
             await db.Atencion.create({
                 paciente_id: nuevoPaciente.id,
                 profesional_id,
-                fecha_atencion: new Date()
+                fecha_atencion: new Date(),
             });
         }
 
         return res.status(201).json({
-            message: "Paciente creado correctamente.",
+            message: 'Paciente creado correctamente.',
             paciente: nuevoPaciente,
         });
-
-
     } catch (err) {
         return res.status(500).json({
-            message: "Error al crear paciente.",
+            message: 'Error al crear paciente.',
             err,
         });
     }
@@ -55,12 +61,12 @@ const buscarPaciente = async (req, res) => {
     try {
         const data = await db.Paciente.findOne({ where: { id } });
         if (!data) {
-            return res.status(404).json({ message: "El paciente no existe." });
+            return res.status(404).json({ message: 'El paciente no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al buscar paciente.",
+            message: 'Error al buscar paciente.',
             err,
         });
     }
@@ -77,21 +83,26 @@ const buscarPacienteRut = async (req, res) => {
             where: db.Sequelize.where(
                 db.Sequelize.fn(
                     'REPLACE',
-                    db.Sequelize.fn('REPLACE', db.Sequelize.col('user_id'), '.', ''),
+                    db.Sequelize.fn(
+                        'REPLACE',
+                        db.Sequelize.col('user_id'),
+                        '.',
+                        ''
+                    ),
                     '-',
                     ''
                 ),
                 limpio
             ),
-            include: db.User
+            include: db.User,
         });
         if (!data) {
-            return res.status(404).json({ message: "El paciente no existe." });
+            return res.status(404).json({ message: 'El paciente no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al buscar paciente.",
+            message: 'Error al buscar paciente.',
             err,
         });
     }
@@ -102,7 +113,7 @@ const listarPacientesProfesional = async (req, res) => {
     try {
         const atenciones = await db.Atencion.findAll({
             where: { profesional_id: profesionalId },
-            include: { model: db.Paciente, include: db.User }
+            include: { model: db.Paciente, include: db.User },
         });
         const pacientes = [];
         const seen = new Set();
@@ -115,7 +126,7 @@ const listarPacientesProfesional = async (req, res) => {
         return res.status(200).json(pacientes);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al listar pacientes.",
+            message: 'Error al listar pacientes.',
             err,
         });
     }
@@ -128,18 +139,26 @@ const actualizarPaciente = async (req, res) => {
             await db.Atencion.create({
                 paciente_id: id,
                 profesional_id,
-                fecha_atencion: new Date()
+                fecha_atencion: new Date(),
             });
         }
 
-        const [actualizados] = await db.Paciente.update(resto, { where: { id } });
+        const [actualizados] = await db.Paciente.update(resto, {
+            where: { id },
+        });
         if (actualizados === 0) {
-            return res.status(404).json({ message: "El paciente no fue encontrado para actualizar." });
+            return res
+                .status(404)
+                .json({
+                    message: 'El paciente no fue encontrado para actualizar.',
+                });
         }
-        return res.status(200).json({ message: "Paciente actualizado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Paciente actualizado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al actualizar paciente.",
+            message: 'Error al actualizar paciente.',
             err,
         });
     }
@@ -150,12 +169,18 @@ const eliminarPaciente = async (req, res) => {
     try {
         const eliminados = await db.Paciente.destroy({ where: { id } });
         if (eliminados === 0) {
-            return res.status(404).json({ message: "El paciente no fue encontrado para eliminar." });
+            return res
+                .status(404)
+                .json({
+                    message: 'El paciente no fue encontrado para eliminar.',
+                });
         }
-        return res.status(200).json({ message: "Paciente eliminado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Paciente eliminado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al eliminar paciente.",
+            message: 'Error al eliminar paciente.',
             err,
         });
     }
@@ -167,13 +192,18 @@ const obtenerPacienteActual = async (req, res) => {
         return res.status(400).json({ message: 'RUT no disponible.' });
     }
     try {
-        const data = await db.Paciente.findOne({ where: { user_id: rut }, include: db.User });
+        const data = await db.Paciente.findOne({
+            where: { user_id: rut },
+            include: db.User,
+        });
         if (!data) {
             return res.status(404).json({ message: 'El paciente no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
-        return res.status(500).json({ message: 'Error al obtener paciente.', err });
+        return res
+            .status(500)
+            .json({ message: 'Error al obtener paciente.', err });
     }
 };
 
@@ -183,15 +213,51 @@ const obtenerProfesionalPaciente = async (req, res) => {
         const atencion = await db.Atencion.findOne({
             where: { paciente_id: id },
             order: [['fecha_atencion', 'DESC']],
-            include: { model: db.Profesional, include: db.User }
+            include: { model: db.Profesional, include: db.User },
         });
         if (!atencion) {
-            return res.status(404).json({ message: 'El paciente no posee atenciones.' });
+            return res
+                .status(404)
+                .json({ message: 'El paciente no posee atenciones.' });
         }
         return res.status(200).json(atencion.profesional);
     } catch (err) {
         return res.status(500).json({
             message: 'Error al obtener profesional del paciente.',
+            err,
+        });
+    }
+};
+
+const obtenerAtencionesPaciente = async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({
+            message: 'El parámetro id del paciente es obligatorio.',
+        });
+    }
+
+    try {
+        const atenciones = await db.Atencion.findAll({
+            where: { paciente_id: id },
+            order: [['fecha_atencion', 'DESC']],
+            include: [
+                { model: db.Paciente, include: db.User },
+                { model: db.Profesional, include: db.User },
+            ],
+        });
+
+        if (!atenciones || atenciones.length === 0) {
+            return res.status(404).json({
+                message: 'No se encontraron atenciones para este paciente.',
+            });
+        }
+
+        return res.status(200).json(atenciones);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener atenciones del paciente.',
             err,
         });
     }
@@ -206,5 +272,6 @@ module.exports = {
     actualizarPaciente,
     eliminarPaciente,
     obtenerPacienteActual,
-    obtenerProfesionalPaciente
+    obtenerProfesionalPaciente,
+    obtenerAtencionesPaciente,
 };

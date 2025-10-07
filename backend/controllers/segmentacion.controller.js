@@ -51,11 +51,9 @@ const crearSegmentacionManual = (req, res) => {
                 where: { imagen_id: id },
             });
             if (segmentacionExistente) {
-                return res
-                    .status(400)
-                    .json({
-                        message: 'Ya existe una segmentacion para esta imagen.',
-                    });
+                return res.status(400).json({
+                    message: 'Ya existe una segmentacion para esta imagen.',
+                });
             }
 
             const imagen = await db.Imagen.findOne({ where: { id } });
@@ -358,14 +356,14 @@ const editarSegmentacion = (req, res) => {
     upload(req, res, async function (err) {
         if (respondMulterError(err, res)) return;
         try {
-            const { id } = req.body;
-            if (!id) {
+            const { imagen_id } = req.body;
+            if (!imagen_id) {
                 return res
                     .status(400)
-                    .json({ message: 'El id de segmentacion es requerido.' });
+                    .json({ message: 'El imagen_id es requerido.' });
             }
             const segmentacion = await db.Segmentacion.findOne({
-                where: { id },
+                where: { imagen_id },
             });
             if (!segmentacion) {
                 return res
@@ -373,13 +371,11 @@ const editarSegmentacion = (req, res) => {
                     .json({ message: 'La segmentacion no existe.' });
             }
             const foto = req.file;
-            console.log('a');
             if (!foto) {
                 return res
                     .status(400)
                     .json({ message: 'La imagen es requerida.' });
             }
-            console.log('a2');
 
             if (!isJpegMime(foto.mimetype)) {
                 return res.status(400).json({
@@ -387,35 +383,30 @@ const editarSegmentacion = (req, res) => {
                         'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
                 });
             }
-            console.log('a3');
 
             const imagen = await db.Imagen.findOne({
-                where: { id: segmentacion.imagen_id },
+                where: { id: imagen_id },
             });
             const filename = path.basename(
                 imagen.nombre_archivo,
                 path.extname(imagen.nombre_archivo)
             );
-            console.log('a4');
 
             ensureDirExists(MASKS_DIR);
-            console.log('a5');
 
             const rutaArchivo = path.join(MASKS_DIR, `${filename}.jpg`);
 
             // Actualizar la ruta de la máscara en la base de datos
             segmentacion.ruta_mascara = rutaArchivo;
-            console.log('a6');
 
             await segmentacion.save();
             // Guardar el archivo en la ruta especificada
             const filePath = path.join(MASKS_DIR, `${filename}.jpg`);
             fs.writeFileSync(filePath, foto.buffer);
-            console.log('a7');
 
             return res.status(200).json({
                 message: 'Segmentacion editada correctamente.',
-                segmentacionId: segmentacion.id,
+                imagen_id: segmentacion.imagen_id,
             });
         } catch (error) {
             return res.status(500).json({
@@ -445,9 +436,9 @@ const descargarMascara = async (req, res) => {
 };
 
 const buscarSegmentacion = async (req, res) => {
-    const { id } = req.body;
+    const { imagen_id } = req.body;
     try {
-        const data = await db.Segmentacion.findOne({ where: { id } });
+        const data = await db.Segmentacion.findOne({ where: { imagen_id } });
         if (!data) {
             return res
                 .status(404)
@@ -463,10 +454,11 @@ const buscarSegmentacion = async (req, res) => {
 };
 
 const actualizarSegmentacion = async (req, res) => {
-    const { id, ...resto } = req.body;
+    const { imagen_id, ...resto } = req.body;
+    console.log(imagen_id, resto);
     try {
         const [actualizados] = await db.Segmentacion.update(resto, {
-            where: { id },
+            where: { imagen_id },
         });
         if (actualizados === 0) {
             return res.status(404).json({
@@ -485,9 +477,11 @@ const actualizarSegmentacion = async (req, res) => {
 };
 
 const eliminarSegmentacion = async (req, res) => {
-    const { id } = req.body;
+    const { imagen_id } = req.body;
     try {
-        const eliminados = await db.Segmentacion.destroy({ where: { id } });
+        const eliminados = await db.Segmentacion.destroy({
+            where: { imagen_id },
+        });
         if (eliminados === 0) {
             return res.status(404).json({
                 message: 'El segmentacion no fue encontrado para eliminar.',

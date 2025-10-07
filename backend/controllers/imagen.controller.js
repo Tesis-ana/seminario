@@ -56,6 +56,7 @@ const subirImagen = (req, res) => {
         return res.status(404).json({ message: 'El paciente no existe.' });
       }
       // guardar en FS y en BBDD
+      console.log("tamaño del archivo:", req.file.size);
       const filename = `${paciente.id}_${Date.now()}.jpg`;
       ensureDirExists(IMGS_DIR);
       const filePath = path.join(IMGS_DIR, filename);

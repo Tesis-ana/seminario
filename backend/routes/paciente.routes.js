@@ -13,5 +13,6 @@ router.get("/profesional/:profesionalId", controlador.listarPacientesProfesional
 router.get("/:id/profesional", controlador.obtenerProfesionalPaciente);
 router.put("/", controlador.actualizarPaciente);
 router.delete("/", controlador.eliminarPaciente);
+router.post("/atenciones", controlador.obtenerAtencionesPaciente);
 
 module.exports = router;

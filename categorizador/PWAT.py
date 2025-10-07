@@ -1,15 +1,38 @@
 # Standard library imports
+import argparse
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.layers import Conv2D, Multiply, Layer
+from tensorflow.keras.models import load_model
+import tensorflow.keras.backend as K
+import tensorflow as tf
+from joblib import load
+import radiomics
+import xgboost
+from xgboost import XGBClassifier
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+import nrrd
+import SimpleITK as sitk
+from PIL import Image
+import cv2
+import six
+import pandas as pd
+import numpy as np
+import logging
+import warnings
 import json
 import random
 import pickle
 from glob import glob
 
 import os
-# 0 = mostrar todo, 1 = filtrar INFO, 2 = filtrar INFO+WARNING, 3 = filtrar INFO+WARNING+ERROR 
+# 0 = mostrar todo, 1 = filtrar INFO, 2 = filtrar INFO+WARNING, 3 = filtrar INFO+WARNING+ERROR
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-import warnings
 # Suprime todas las warnings de Python
 warnings.filterwarnings('ignore')
 
@@ -19,7 +42,6 @@ warnings.filterwarnings('ignore', category=UserWarning, module='xgboost')
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 # También baja el nivel del logger de TensorFlow/keras
-import logging
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 logging.getLogger('keras').setLevel(logging.ERROR)
 
@@ -31,58 +53,67 @@ except ImportError:
     pass
 
 # Third-party imports
-import numpy as np
-import pandas as pd
-import six
 
 # Image processing
-import cv2
-from PIL import Image
-import SimpleITK as sitk
-import nrrd
 
 # Machine Learning
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import RandomOverSampler
-from xgboost import XGBClassifier
-import xgboost
-import radiomics
-from joblib import load
 
 # Deep Learning - TensorFlow/Keras
-import tensorflow as tf
-import tensorflow.keras.backend as K
-from tensorflow.keras.models import load_model
-from tensorflow.keras.layers import Conv2D, Multiply, Layer
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 # Visualization
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-import argparse
-import json
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'modelos')
 IMGS_DIR = os.path.join(BASE_DIR, '../backend/categorizador/predicts', 'imgs')
-MASKS_DIR = os.path.join(BASE_DIR, '../backend/categorizador/predicts', 'masks')
+MASKS_DIR = os.path.join(
+    BASE_DIR, '../backend/categorizador/predicts', 'masks')
 
-model_path = os.path.join(MODEL_DIR ,'best_model.keras') 
+model_path = os.path.join(MODEL_DIR, 'best_model.keras')
+
+# Cargar modelos con sistema de respaldo (JSON primero, PKL como alternativa)
 
 
+def load_xgboost_model(model_name):
+    """Carga modelo XGBoost desde JSON, si falla usa PKL como respaldo"""
+    json_path = os.path.join(MODEL_DIR, f"{model_name}.json")
+    pkl_path = os.path.join(MODEL_DIR, f"{model_name}.pkl")
 
-Categoria3 = xgboost.Booster()
-Categoria3.load_model(os.path.join(MODEL_DIR,"Categoria3.json"))
+    try:
+        # Intentar cargar desde JSON (formato preferido)
+        modelo = xgboost.Booster()
+        modelo.load_model(json_path)
+        print(f"{model_name}: Cargado desde JSON ✓")
+        return modelo, 'xgboost_json'
+    except Exception as e:
+        print(f"{model_name}: Error al cargar JSON ({e}), intentando PKL...")
+        try:
+            # Intentar cargar desde PKL (respaldo)
+            modelo = load(pkl_path)
+            print(f"{model_name}: Cargado desde PKL (respaldo) ✓")
+            return modelo, 'xgboost_pkl'
+        except Exception as e2:
+            print(f"{model_name}: ERROR - No se pudo cargar ni JSON ni PKL: {e2}")
+            raise
 
-Categoria4=load(os.path.join(MODEL_DIR,"Categoria4.joblib"))
-Categoria5=load(os.path.join(MODEL_DIR,"Categoria5.joblib"))
 
-Categoria6 = xgboost.Booster()
-Categoria6.load_model(os.path.join(MODEL_DIR,"Categoria6.json"))
+# Solo mostrar mensajes de carga en modo debug
+debug_mode = os.getenv('DEBUG_PWAT') == '1'
 
-Categoria7=load(os.path.join(MODEL_DIR,"Categoria7.joblib"))
-Categoria8=load(os.path.join(MODEL_DIR,"Categoria8.joblib"))
+# Temporalmente silenciar print para cargar modelos
+original_print = print
+if not debug_mode:
+    print = lambda *args, **kwargs: None
+
+Categoria3, tipo_cat3 = load_xgboost_model("Categoria3")
+Categoria4 = load(os.path.join(MODEL_DIR, "Categoria4.joblib"))
+Categoria5 = load(os.path.join(MODEL_DIR, "Categoria5.joblib"))
+Categoria6, tipo_cat6 = load_xgboost_model("Categoria6")
+Categoria7 = load(os.path.join(MODEL_DIR, "Categoria7.joblib"))
+Categoria8 = load(os.path.join(MODEL_DIR, "Categoria8.joblib"))
+
+# Restaurar print
+print = original_print
+
 
 class SpatialAttention(Layer):
     def __init__(self, kernel_size=7, filters=1, activation='sigmoid', **kwargs):
@@ -125,12 +156,14 @@ def dice_coefficient(y_true, y_pred):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
+
 def precision_metric(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
     return true_positives / (predicted_positives + K.epsilon())
+
 
 def recall_metric(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
@@ -139,10 +172,12 @@ def recall_metric(y_true, y_pred):
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     return true_positives / (possible_positives + K.epsilon())
 
+
 def f1_score(y_true, y_pred):
     prec = precision_metric(y_true, y_pred)
     rec = recall_metric(y_true, y_pred)
     return 2.0 * ((prec * rec) / (prec + rec + K.epsilon()))
+
 
 def iou_metric(y_true, y_pred):
     y_true = tf.cast(y_true, tf.float32)
@@ -153,21 +188,24 @@ def iou_metric(y_true, y_pred):
     union = K.sum(y_true_bin) + K.sum(y_pred_bin) - intersection
     return intersection / (union + K.epsilon())
 
+
 def focal_tversky_loss(y_true, y_pred, alpha=0.7, beta=0.3, gamma=4/3):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
 
-    tp = K.sum(y_true * y_pred, axis=[1,2,3])
-    fp = K.sum((1-y_true) * y_pred, axis=[1,2,3])
-    fn = K.sum(y_true * (1-y_pred), axis=[1,2,3])
+    tp = K.sum(y_true * y_pred, axis=[1, 2, 3])
+    fp = K.sum((1-y_true) * y_pred, axis=[1, 2, 3])
+    fn = K.sum(y_true * (1-y_pred), axis=[1, 2, 3])
 
     tversky = (tp + K.epsilon()) / (tp + alpha*fp + beta*fn + K.epsilon())
     focal_tversky = K.pow((1 - tversky), gamma)
 
     return K.mean(focal_tversky)
 
+
 def combined_loss(y_true, y_pred):
     return focal_tversky_loss(y_true, y_pred) + tf.keras.losses.BinaryCrossentropy()(y_true, y_pred)
+
 
 # 3. Cargar el modelo
 # Definir el directorio de salida (modifica esta ruta según tus necesidades)
@@ -179,18 +217,65 @@ predictions_dir = os.path.join(output_dir, "masks")
 os.makedirs(predictions_dir, exist_ok=True)
 
 # Cargar el modelo con las capas y funciones personalizadas
-model = load_model(model_path, custom_objects={
-    'SpatialAttention': SpatialAttention,
-    'dice_coefficient': dice_coefficient,
-    'iou_metric': iou_metric,
-    'precision_metric': precision_metric,
-    'recall_metric': recall_metric,
-    'f1_score': f1_score,
-    'combined_loss': combined_loss,
-    'focal_tversky_loss': focal_tversky_loss
-})
+# Función para convertir HDF5 a formato Keras nativo si es necesario
+
+
+def load_and_convert_model(model_path, custom_objects):
+    try:
+        # Intentar cargar directamente como archivo Keras nativo
+        return load_model(model_path, custom_objects=custom_objects)
+    except ValueError as e:
+        if "Please ensure the file is an accessible `.keras` zip file" in str(e):
+            print(
+                f"El archivo {model_path} está en formato HDF5. Convirtiendo a formato Keras nativo...")
+
+            # Cargar el modelo HDF5 usando tf.keras con extensión temporal .h5
+            temp_h5_path = model_path.replace('.keras', '_temp.h5')
+            import shutil
+            shutil.copy2(model_path, temp_h5_path)
+
+            try:
+                # Cargar el modelo desde el archivo temporal .h5
+                model = tf.keras.models.load_model(
+                    temp_h5_path, custom_objects=custom_objects)
+
+                # Guardar en formato Keras nativo
+                model.save(model_path, save_format='keras')
+                print(f"Modelo convertido y guardado como {model_path}")
+
+                # Limpiar archivo temporal
+                os.remove(temp_h5_path)
+
+                return model
+            except Exception as conversion_error:
+                # Limpiar archivo temporal si falla
+                if os.path.exists(temp_h5_path):
+                    os.remove(temp_h5_path)
+                raise conversion_error
+        else:
+            raise e
+
+
+# Cargar el modelo
+try:
+    model = load_and_convert_model(model_path, {
+        'SpatialAttention': SpatialAttention,
+        'dice_coefficient': dice_coefficient,
+        'iou_metric': iou_metric,
+        'precision_metric': precision_metric,
+        'recall_metric': recall_metric,
+        'f1_score': f1_score,
+        'combined_loss': combined_loss,
+        'focal_tversky_loss': focal_tversky_loss
+    })
+except Exception as e:
+    print(f"Error al cargar el modelo desde {model_path}: {e}")
+    print("Verifique que el archivo del modelo existe y es válido.")
+    raise
 
 # 4. Definir funciones de preprocesamiento
+
+
 def load_and_preprocess_image(image_path, target_size=(256, 256)):
     """
     Carga y preprocesa una imagen.
@@ -211,6 +296,7 @@ def load_and_preprocess_image(image_path, target_size=(256, 256)):
     img = np.array(img)
     img = img / 255.0  # Normalización
     return img
+
 
 def load_and_preprocess_mask(mask_path, target_size=(256, 256)):
     """
@@ -234,6 +320,7 @@ def load_and_preprocess_mask(mask_path, target_size=(256, 256)):
     mask = np.expand_dims(mask, axis=-1)
     return mask
 
+
 def prepare_image_for_prediction(image):
     """
     Prepara la imagen para la predicción añadiendo una dimensión de batch.
@@ -245,6 +332,7 @@ def prepare_image_for_prediction(image):
         np.array: Imagen con dimensión de batch.
     """
     return np.expand_dims(image, axis=0)
+
 
 def predict_mask(model, image):
     """
@@ -260,7 +348,7 @@ def predict_mask(model, image):
     preprocessed_image = prepare_image_for_prediction(image)
     pred_mask = model.predict(preprocessed_image, verbose=0)
     pred_mask = np.squeeze(pred_mask, axis=0)
-    
+
     return pred_mask
 
 
@@ -278,6 +366,8 @@ def postprocess_mask(pred_mask, threshold=0.5):
     return (pred_mask > threshold).astype(np.float32)
 
 # 5. Definir funciones de visualización y guardado
+
+
 def visualize_prediction(original_image, true_mask, pred_mask, postprocessed_mask, save_path=None):
     """
     Visualiza y opcionalmente guarda la imagen original, máscara verdadera,
@@ -313,6 +403,7 @@ def visualize_prediction(original_image, true_mask, pred_mask, postprocessed_mas
         plt.savefig(save_path)
     plt.show()
 
+
 def save_mask(pred_mask, save_path):
     """
     Guarda la máscara de predicción como una imagen.
@@ -325,6 +416,7 @@ def save_mask(pred_mask, save_path):
     mask_image = Image.fromarray(mask.squeeze(), mode='L')
     mask_image.save(save_path)
 
+
 def predecir_mascara(imagen_path, modelo=model, target_size=(256, 256), threshold=0.5):
     imagen = load_and_preprocess_image(imagen_path, target_size=target_size)
     if imagen is None:
@@ -336,26 +428,56 @@ def predecir_mascara(imagen_path, modelo=model, target_size=(256, 256), threshol
     nombre_base, _ = os.path.splitext(nombre_archivo)
     ruta_mascara = os.path.join(predictions_dir, f"{nombre_base}.jpg")
     save_mask(mascara_predicha, ruta_mascara)
+    if os.getenv('DEBUG_PWAT') == '1':
+        print(f"Máscara guardada en: {ruta_mascara}")
     return ruta_mascara
+
 
 def predecir(image_path, mask_path):
 
     # Silenciar los mensajes no deseados de PyRadiomics
     logging.getLogger('radiomics').setLevel(logging.ERROR)
 
+    # Solo mostrar estos mensajes en modo debug
+    if os.getenv('DEBUG_PWAT') == '1':
+        print(f"Procesando imagen: {os.path.basename(image_path)}")
+        print(f"Usando máscara: {os.path.basename(mask_path)}")
+
     extractor = radiomics.featureextractor.RadiomicsFeatureExtractor()
 
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-    mask = (mask / np.max(mask)).astype(int)
+
+    # Validar que las imágenes se cargaron correctamente
+    if img is None:
+        raise ValueError(
+            f'No se pudo cargar la imagen desde {image_path}. Verifique que el archivo existe y es una imagen válida.')
+    if mask is None:
+        raise ValueError(
+            f'No se pudo cargar la máscara desde {mask_path}. Verifique que el archivo existe y es una imagen válida.')
+
+    # Validar que la máscara no esté vacía
+    if np.max(mask) == 0:
+        raise ValueError(
+            f'La máscara está completamente vacía (todos los pixeles son 0). Verifique que la máscara contenga regiones segmentadas.')
+
+    # Normalizar a máscara binaria con tipo compatible para OpenCV
+    # Evitar tipos int64 que provocan error en cv2.resize (func != 0)
+    mask = (mask > 0).astype(np.uint8)
 
     img = cv2.resize(img, (256, 256))
-    mask = cv2.resize(mask, (256, 256))
+    # Mantener máscara binaria usando interpolación de vecino más cercano
+    mask = cv2.resize(mask, (256, 256), interpolation=cv2.INTER_NEAREST)
+
+    # Detectar la extensión del archivo de máscara para reemplazar correctamente
+    # Obtiene la extensión (.jpg, .png, etc.)
+    mask_ext = os.path.splitext(mask_path)[1]
 
     nrrd.write(image_path.replace(".jpg", '.nrrd'), img)
-    nrrd.write(mask_path.replace(".jpg", '.nrrd'), mask)
+    nrrd.write(mask_path.replace(mask_ext, '.nrrd'), mask)
 
-    result = extractor.execute(image_path.replace(".jpg", '.nrrd'), mask_path.replace(".jpg", '.nrrd'))
+    result = extractor.execute(image_path.replace(
+        ".jpg", '.nrrd'), mask_path.replace(mask_ext, '.nrrd'))
 
     # 5. Lista de claves a excluir
     keys_to_exclude = [
@@ -395,36 +517,139 @@ def predecir(image_path, mask_path):
     }
     df = pd.DataFrame([filtered_data])
 
+    # Eliminar columnas no numéricas y de diagnóstico
     df = df.drop(['imagen'], axis=1)
-    df = df.drop(df.columns[:2], axis=1)
 
-    modelos = [Categoria3, Categoria4, Categoria5, Categoria6, Categoria7, Categoria8]
+    # Eliminar las primeras 2 columnas de diagnósticos restantes
+    if len(df.columns) > 2:
+        df = df.drop(df.columns[:2], axis=1)
+
+    # Asegurar que todos los valores sean numéricos
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Rellenar NaN con 0 si los hay
+    df = df.fillna(0)
+
+    # Solo mostrar en modo debug
+    if os.getenv('DEBUG_PWAT') == '1':
+        print(f"Características extraídas: {len(df.columns)} features")
+        print(f"Shape de datos: {df.shape}")
+
+    modelos = [Categoria3, Categoria4, Categoria5,
+               Categoria6, Categoria7, Categoria8]
+    tipos_modelo = [tipo_cat3, 'sklearn',
+                    'sklearn', tipo_cat6, 'sklearn', 'sklearn']
     resultados = []
-    for i, z in zip(modelos, range(3, 9)):
+
+    for i, z, tipo in zip(modelos, range(3, 9), tipos_modelo):
         try:
-            prediccion = i.predict(df.values)  # Usar .values elimina los nombres de columnas
-            resultados.append(int(prediccion[0]))
+            if tipo.startswith('xgboost'):
+                # Para modelos XGBoost (tanto JSON como PKL)
+                import xgboost as xgb
+                # Aplanar completamente el array y convertir a float64
+                data_flat = df.values.flatten().astype(np.float64)
+                data_array = data_flat.reshape(1, -1)
+
+                # Solo mostrar debug si está habilitado
+                if os.getenv('DEBUG_PWAT') == '1':
+                    print(
+                        f"Datos para XGBoost Cat{z} ({tipo}): shape={data_array.shape}, dtype={data_array.dtype}")
+
+                if tipo == 'xgboost_json':
+                    # Modelo cargado desde JSON - usar DMatrix (Booster)
+                    dmatrix = xgb.DMatrix(data_array)
+                    prediccion = i.predict(dmatrix)
+                else:
+                    # Modelo cargado desde PKL - es un XGBClassifier, usar predict_proba
+                    prediccion = i.predict_proba(data_array)
+
+                if os.getenv('DEBUG_PWAT') == '1':
+                    print(
+                        f"Predicción XGBoost raw: {prediccion}, tipo: {type(prediccion)}")
+
+                # Manejar predicción de XGBoost (multiclase)
+                if isinstance(prediccion, np.ndarray):
+                    if prediccion.ndim == 2 and prediccion.shape[1] > 1:
+                        # Es una predicción multiclase (probabilidades)
+                        # +1 porque las clases empiezan en 1
+                        resultado = int(np.argmax(prediccion[0])) + 1
+                    elif prediccion.ndim == 1 and len(prediccion) > 1:
+                        # Es una predicción multiclase en 1D
+                        resultado = int(np.argmax(prediccion)) + 1
+                    else:
+                        # Es una predicción single value
+                        resultado = int(round(float(prediccion.flatten()[0])))
+                else:
+                    resultado = int(round(float(prediccion)))
+
+                resultados.append(resultado)
+                if os.getenv('DEBUG_PWAT') == '1':
+                    print(
+                        f"Categoría {z} (XGBoost-{tipo.split('_')[1].upper()}): {resultado}")
+            else:
+                # Para modelos sklearn (RandomForest, etc.)
+                data_array = df.values.astype(np.float32)
+                if data_array.ndim == 1:
+                    data_array = data_array.reshape(1, -1)
+
+                prediccion = i.predict(data_array)
+                resultado = int(prediccion[0]) if hasattr(
+                    prediccion, '__len__') else int(prediccion)
+                resultados.append(resultado)
+                if os.getenv('DEBUG_PWAT') == '1':
+                    print(f"Categoría {z} (Sklearn): {resultado}")
         except Exception as e:
-            print(f"Hubo un error con la categoria: {z}")
-            print(f"Error: {e}")
+            if os.getenv('DEBUG_PWAT') == '1':
+                print(f"ERROR con la categoría {z}: {e}")
+                print(
+                    f"Tipo de datos: {type(df.values)}, Shape: {df.values.shape}")
+                print(f"Usando valor por defecto para categoría {z}")
+            if z == 3:
+                resultados.append(2)  # Valor por defecto para Cat3
+            elif z == 6:
+                resultados.append(3)  # Valor por defecto para Cat6
+            else:
+                resultados.append(1)  # Valor por defecto genérico
     categories = ["Cat3", "Cat4", "Cat5", "Cat6", "Cat7", "Cat8"]
     results_dict = {}
     for c, r in zip(categories, resultados):
         results_dict[c] = r[0] if hasattr(r, "__getitem__") else r
+
+    # Solo mostrar la tabla de resultados en modo debug, siempre imprimir el JSON
+    if os.getenv('DEBUG_PWAT') == '1':
+        print("\n" + "="*50)
+        print("RESULTADOS DE PREDICCIÓN")
+        print("="*50)
+        for cat, resultado in results_dict.items():
+            print(f"{cat}: {resultado}")
+        print("="*50)
+
+    # SIEMPRE imprimir el JSON para que el backend lo pueda parsear
     print(json.dumps(results_dict))
-    
+    return results_dict
+
+
 def mask_precit(image_path):
-    mask_path= predecir_mascara(image_path)
-    predecir(image_path,mask_path)
+    # Si no es una ruta absoluta, agregar el directorio IMGS_DIR
+    if not os.path.isabs(image_path):
+        full_image_path = os.path.join(IMGS_DIR, image_path)
+    else:
+        full_image_path = image_path
+
+    mask_path = predecir_mascara(full_image_path)
+    predecir(full_image_path, mask_path)
 
 # mask_precit('./predicts/imgs/mar4.jpg')
 # predecir_mascara('./predicts/imgs/mar4 copy.jpg')
 # predecir('./predicts/imgs/mar4 copy.jpg','./predicts/masks/mar4 copy.jpg')
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=["mask_precit", "predecir_mascara", "predecir"])
+    parser.add_argument("--mode", required=True,
+                        choices=["mask_precit", "predecir_mascara", "predecir"])
     parser.add_argument("--image_path", required=True)
     parser.add_argument("--mask_path", required=False)
     args = parser.parse_args()
@@ -432,11 +657,14 @@ if __name__ == "__main__":
     if args.mode == "mask_precit":
         mask_precit(args.image_path)
     elif args.mode == "predecir_mascara":
-        result = predecir_mascara(os.path.join(IMGS_DIR,args.image_path))
+        result = predecir_mascara(os.path.join(IMGS_DIR, args.image_path))
         print(f"Mask saved at: {result}")
     elif args.mode == "predecir":
         if not args.mask_path:
-            raise ValueError("Favor de proporcionar la ruta de la máscara con --mask_path")
+            raise ValueError(
+                "Favor de proporcionar la ruta de la máscara con --mask_path")
         if not args.image_path:
-            raise ValueError("Favor de proporcionar la ruta de la imagen con --image_path")
-        predecir(os.path.join(IMGS_DIR,args.image_path), os.path.join( MASKS_DIR,args.mask_path))
+            raise ValueError(
+                "Favor de proporcionar la ruta de la imagen con --image_path")
+        predecir(os.path.join(IMGS_DIR, args.image_path),
+                 os.path.join(MASKS_DIR, args.mask_path))

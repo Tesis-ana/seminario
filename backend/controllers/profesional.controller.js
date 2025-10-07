@@ -1,4 +1,4 @@
-const db = require("../models");
+const db = require('../models');
 const Op = db.Sequelize.Op;
 
 const listarProfesionales = async (req, res) => {
@@ -7,7 +7,7 @@ const listarProfesionales = async (req, res) => {
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al listar profesionales.",
+            message: 'Error al listar profesionales.',
             err,
         });
     }
@@ -15,11 +15,26 @@ const listarProfesionales = async (req, res) => {
 
 const crearProfesional = async (req, res) => {
     try {
-        const data = await db.Profesional.create(req.body);
+        const { especialidad, fecha_ingreso, user_id } = req.body;
+        if (!user_id) {
+            return res.status(400).json({ message: 'user_id es requerido.' });
+        }
+        if (!especialidad) {
+            return res
+                .status(400)
+                .json({ message: 'especialidad es requerida.' });
+        }
+
+        const data = await db.Profesional.create({
+            especialidad,
+            fecha_ingreso: fecha_ingreso || new Date(),
+            user_id,
+        });
+
         return res.status(201).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al crear profesional.",
+            message: 'Error al crear profesional.',
             err,
         });
     }
@@ -28,7 +43,9 @@ const crearProfesional = async (req, res) => {
 const crearProfesionalesBulk = async (req, res) => {
     const { profesionales } = req.body;
     if (!Array.isArray(profesionales)) {
-        return res.status(400).json({ message: 'Lista de profesionales requerida' });
+        return res
+            .status(400)
+            .json({ message: 'Lista de profesionales requerida' });
     }
     try {
         for (const p of profesionales) {
@@ -36,7 +53,9 @@ const crearProfesionalesBulk = async (req, res) => {
         }
         return res.status(201).json({ message: 'Profesionales creados' });
     } catch (err) {
-        return res.status(500).json({ message: 'Error al crear profesionales', err });
+        return res
+            .status(500)
+            .json({ message: 'Error al crear profesionales', err });
     }
 };
 
@@ -45,12 +64,14 @@ const buscarProfesional = async (req, res) => {
     try {
         const data = await db.Profesional.findOne({ where: { id } });
         if (!data) {
-            return res.status(404).json({ message: "El profesional no existe." });
+            return res
+                .status(404)
+                .json({ message: 'El profesional no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al buscar profesional.",
+            message: 'Error al buscar profesional.',
             err,
         });
     }
@@ -67,20 +88,27 @@ const buscarProfesionalRut = async (req, res) => {
             where: db.Sequelize.where(
                 db.Sequelize.fn(
                     'REPLACE',
-                    db.Sequelize.fn('REPLACE', db.Sequelize.col('user_id'), '.', ''),
+                    db.Sequelize.fn(
+                        'REPLACE',
+                        db.Sequelize.col('user_id'),
+                        '.',
+                        ''
+                    ),
                     '-',
                     ''
                 ),
                 limpio
-            )
+            ),
         });
         if (!data) {
-            return res.status(404).json({ message: "El profesional no existe." });
+            return res
+                .status(404)
+                .json({ message: 'El profesional no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
-            message: "Error al buscar profesional.",
+            message: 'Error al buscar profesional.',
             err,
         });
     }
@@ -94,7 +122,9 @@ const obtenerProfesionalActual = async (req, res) => {
     try {
         const data = await db.Profesional.findOne({ where: { user_id: rut } });
         if (!data) {
-            return res.status(404).json({ message: 'El profesional no existe.' });
+            return res
+                .status(404)
+                .json({ message: 'El profesional no existe.' });
         }
         return res.status(200).json(data);
     } catch (err) {
@@ -108,14 +138,23 @@ const obtenerProfesionalActual = async (req, res) => {
 const actualizarProfesional = async (req, res) => {
     const { id, ...resto } = req.body;
     try {
-        const [actualizados] = await db.Profesional.update(resto, { where: { id } });
+        const [actualizados] = await db.Profesional.update(resto, {
+            where: { id },
+        });
         if (actualizados === 0) {
-            return res.status(404).json({ message: "El profesional no fue encontrado para actualizar." });
+            return res
+                .status(404)
+                .json({
+                    message:
+                        'El profesional no fue encontrado para actualizar.',
+                });
         }
-        return res.status(200).json({ message: "Profesional actualizado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Profesional actualizado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al actualizar profesional.",
+            message: 'Error al actualizar profesional.',
             err,
         });
     }
@@ -126,12 +165,18 @@ const eliminarProfesional = async (req, res) => {
     try {
         const eliminados = await db.Profesional.destroy({ where: { id } });
         if (eliminados === 0) {
-            return res.status(404).json({ message: "El profesional no fue encontrado para eliminar." });
+            return res
+                .status(404)
+                .json({
+                    message: 'El profesional no fue encontrado para eliminar.',
+                });
         }
-        return res.status(200).json({ message: "Profesional eliminado correctamente." });
+        return res
+            .status(200)
+            .json({ message: 'Profesional eliminado correctamente.' });
     } catch (err) {
         return res.status(500).json({
-            message: "Error al eliminar profesional.",
+            message: 'Error al eliminar profesional.',
             err,
         });
     }
@@ -145,5 +190,5 @@ module.exports = {
     obtenerProfesionalActual,
     actualizarProfesional,
     eliminarProfesional,
-    crearProfesionalesBulk
+    crearProfesionalesBulk,
 };
