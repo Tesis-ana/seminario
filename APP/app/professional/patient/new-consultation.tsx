@@ -2,7 +2,9 @@
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { useState } from 'react'
 import { getMyProfessional, registerAttention } from '@/lib/api'
-import { AppHeader, Card, layoutStyles } from '@/components/ui'
+import { AppHeader } from '@/components/ui/app-header'
+import { Card } from '@/components/ui/card-native'
+import { layoutStyles } from '@/components/ui/styles'
 
 export default function NewConsultation() {
   const { id } = useLocalSearchParams()

@@ -142,12 +142,9 @@ const actualizarProfesional = async (req, res) => {
             where: { id },
         });
         if (actualizados === 0) {
-            return res
-                .status(404)
-                .json({
-                    message:
-                        'El profesional no fue encontrado para actualizar.',
-                });
+            return res.status(404).json({
+                message: 'El profesional no fue encontrado para actualizar.',
+            });
         }
         return res
             .status(200)
@@ -165,11 +162,9 @@ const eliminarProfesional = async (req, res) => {
     try {
         const eliminados = await db.Profesional.destroy({ where: { id } });
         if (eliminados === 0) {
-            return res
-                .status(404)
-                .json({
-                    message: 'El profesional no fue encontrado para eliminar.',
-                });
+            return res.status(404).json({
+                message: 'El profesional no fue encontrado para eliminar.',
+            });
         }
         return res
             .status(200)
@@ -178,6 +173,84 @@ const eliminarProfesional = async (req, res) => {
         return res.status(500).json({
             message: 'Error al eliminar profesional.',
             err,
+        });
+    }
+};
+
+const listarPacientesProfesional = async (req, res) => {
+    try {
+        const userRut = req.user?.rut;
+        if (!userRut) {
+            return res
+                .status(400)
+                .json({ message: 'RUT no disponible en el token.' });
+        }
+
+        // Buscar el profesional por su RUT
+        const profesional = await db.Profesional.findOne({
+            where: { user_id: userRut },
+        });
+        if (!profesional) {
+            return res
+                .status(404)
+                .json({ message: 'Profesional no encontrado.' });
+        }
+
+        // Buscar todos los pacientes que han sido atendidos por este profesional
+        const pacientesAtendidos = await db.Atencion.findAll({
+            where: { profesional_id: profesional.id },
+            include: [
+                {
+                    model: db.Paciente,
+                    as: 'paciente',
+                    include: [
+                        {
+                            model: db.User,
+                            as: 'user',
+                            attributes: [
+                                'rut',
+                                'nombre',
+                                'correo',
+                                'sexo',
+                                'fecha_nacimiento',
+                                
+                            ],
+                        },
+                    ],
+                },
+            ],
+            order: [['fecha_atencion', 'DESC']],
+        });
+
+        // Formatear la respuesta para incluir información útil
+        const pacientesFormateados = pacientesAtendidos.map((atencion) => ({
+            atencion_id:
+                atencion.id ||
+                `${atencion.paciente_id}_${atencion.profesional_id}`,
+            fecha_atencion: atencion.fecha_atencion,
+            paciente: {
+                id: atencion.paciente.id,
+                estado:atencion.paciente.estado,
+                rut: atencion.paciente.user.rut,
+                nombre: atencion.paciente.user.nombre,
+                correo: atencion.paciente.user.correo,
+                sexo: atencion.paciente.user.sexo,
+                fecha_nacimiento: atencion.paciente.user.fecha_nacimiento,
+                estado_salud: atencion.paciente.estado_salud,
+                fecha_registro: atencion.paciente.fecha_registro,
+            },
+        }));
+
+        return res.status(200).json({
+            profesional_id: profesional.id,
+            total_pacientes: pacientesFormateados.length,
+            pacientes: pacientesFormateados,
+        });
+    } catch (error) {
+        console.error('Error al listar pacientes del profesional:', error);
+        return res.status(500).json({
+            message: 'Error al listar pacientes del profesional.',
+            error: error.message,
         });
     }
 };
@@ -191,4 +264,5 @@ module.exports = {
     actualizarProfesional,
     eliminarProfesional,
     crearProfesionalesBulk,
+    listarPacientesProfesional,
 };

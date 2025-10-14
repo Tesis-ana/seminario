@@ -22,11 +22,9 @@ const crearPaciente = async (req, res) => {
             profesional_id = null,
         } = req.body;
         if (!sexo || !user_id) {
-            return res
-                .status(400)
-                .json({
-                    message: 'Los campos sexo y user_id son obligatorios.',
-                });
+            return res.status(400).json({
+                message: 'Los campos sexo y user_id son obligatorios.',
+            });
         }
         const fecha_ingreso = new Date();
         const nuevoPaciente = await db.Paciente.create({
@@ -94,7 +92,7 @@ const buscarPacienteRut = async (req, res) => {
                 ),
                 limpio
             ),
-            include: db.User,
+            include: [{ model: db.User, as: 'user' }],
         });
         if (!data) {
             return res.status(404).json({ message: 'El paciente no existe.' });
@@ -113,7 +111,10 @@ const listarPacientesProfesional = async (req, res) => {
     try {
         const atenciones = await db.Atencion.findAll({
             where: { profesional_id: profesionalId },
-            include: { model: db.Paciente, include: db.User },
+            include: {
+                model: db.Paciente,
+                include: [{ model: db.User, as: 'user' }],
+            },
         });
         const pacientes = [];
         const seen = new Set();
@@ -134,6 +135,7 @@ const listarPacientesProfesional = async (req, res) => {
 
 const actualizarPaciente = async (req, res) => {
     const { id, profesional_id = null, ...resto } = req.body;
+    console.log('Actualizar paciente:', req.body);
     try {
         if (profesional_id) {
             await db.Atencion.create({
@@ -147,11 +149,9 @@ const actualizarPaciente = async (req, res) => {
             where: { id },
         });
         if (actualizados === 0) {
-            return res
-                .status(404)
-                .json({
-                    message: 'El paciente no fue encontrado para actualizar.',
-                });
+            return res.status(404).json({
+                message: 'El paciente no fue encontrado para actualizar.',
+            });
         }
         return res
             .status(200)
@@ -169,11 +169,9 @@ const eliminarPaciente = async (req, res) => {
     try {
         const eliminados = await db.Paciente.destroy({ where: { id } });
         if (eliminados === 0) {
-            return res
-                .status(404)
-                .json({
-                    message: 'El paciente no fue encontrado para eliminar.',
-                });
+            return res.status(404).json({
+                message: 'El paciente no fue encontrado para eliminar.',
+            });
         }
         return res
             .status(200)
@@ -194,7 +192,7 @@ const obtenerPacienteActual = async (req, res) => {
     try {
         const data = await db.Paciente.findOne({
             where: { user_id: rut },
-            include: db.User,
+            include: [{ model: db.User, as: 'user' }],
         });
         if (!data) {
             return res.status(404).json({ message: 'El paciente no existe.' });
@@ -263,6 +261,25 @@ const obtenerAtencionesPaciente = async (req, res) => {
     }
 };
 
+const obtenerPacientePorId = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const paciente = await db.Paciente.findOne({
+            where: { id },
+            include: [{ model: db.User, as: 'user' }],
+        });
+        if (!paciente) {
+            return res.status(404).json({ message: 'El paciente no existe.' });
+        }
+        return res.status(200).json(paciente);
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener paciente.',
+            err,
+        });
+    }
+};
+
 module.exports = {
     listarPacientes,
     crearPaciente,
@@ -274,4 +291,5 @@ module.exports = {
     obtenerPacienteActual,
     obtenerProfesionalPaciente,
     obtenerAtencionesPaciente,
+    obtenerPacientePorId,
 };

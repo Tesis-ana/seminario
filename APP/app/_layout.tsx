@@ -1,6 +1,5 @@
-import { useColorScheme } from "@/hooks/useColorScheme"
 import { useFonts } from "expo-font"
-import * as NavigationBar from "expo-navigation-bar"
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import { useEffect } from "react"
@@ -10,17 +9,19 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import "react-native-reanimated"
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme()
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   })
-  useEffect(() => {
-    const hideNavigationBar = async () => {
-      await NavigationBar.setVisibilityAsync("hidden");
-      await NavigationBar.setBehaviorAsync('overlay-swipe')
+  const visibility = NavigationBar.useVisibility()
+  const hideNavigationBar = async () => {
+      NavigationBar.setVisibilityAsync("hidden");
+      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
-    hideNavigationBar()
-  }, [])
+  useEffect(() => {
+    if (visibility === "visible") {
+      hideNavigationBar()
+    }
+  }, [visibility])
 
   if (!loaded) {
     return null
@@ -44,7 +45,6 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen name="professional" options={{ headerShown: false }} />
-            {/** Nota: no declaramos rutas no existentes */}
             <Stack.Screen name="+not-found" />
           </Stack>
         </SafeAreaView>

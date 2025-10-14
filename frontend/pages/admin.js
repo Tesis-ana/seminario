@@ -82,7 +82,75 @@ export default function Admin() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
+
             if (res.ok) {
+                const userData = await res.json();
+
+                // Si es un nuevo usuario (no edición), crear registro adicional según el rol
+                if (!editUserId) {
+                    const userRut = userForm.rut;
+
+                    // Si el rol es paciente, crear registro en tabla pacientes
+                    if (userForm.rol === 'paciente') {
+                        try {
+                            await apiFetch('/pacientes', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_id: userRut,
+                                    sexo: 'Otro', // valor por defecto
+                                    comentarios: 'Creado desde panel admin',
+                                    fecha_ingreso: new Date()
+                                        .toISOString()
+                                        .split('T')[0],
+                                }),
+                            });
+                            console.log('Paciente creado automáticamente');
+                        } catch (pacienteErr) {
+                            console.error(
+                                'Error al crear paciente:',
+                                pacienteErr
+                            );
+                            alert(
+                                'Usuario creado pero hubo un error al crear el registro de paciente. Por favor, créelo manualmente.'
+                            );
+                        }
+                    }
+
+                    // Si el rol es doctor o enfermera, crear registro en tabla profesionales
+                    if (
+                        userForm.rol === 'doctor' ||
+                        userForm.rol === 'enfermera'
+                    ) {
+                        try {
+                            const especialidadDefault =
+                                userForm.rol === 'doctor'
+                                    ? 'Medicina General'
+                                    : 'Enfermería';
+                            await apiFetch('/profesionales', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_id: userRut,
+                                    especialidad: especialidadDefault,
+                                    fecha_ingreso: new Date()
+                                        .toISOString()
+                                        .split('T')[0],
+                                }),
+                            });
+                            console.log('Profesional creado automáticamente');
+                        } catch (profesionalErr) {
+                            console.error(
+                                'Error al crear profesional:',
+                                profesionalErr
+                            );
+                            alert(
+                                'Usuario creado pero hubo un error al crear el registro de profesional. Por favor, créelo manualmente.'
+                            );
+                        }
+                    }
+                }
+
                 setUserForm({
                     nombre: '',
                     correo: '',
@@ -92,9 +160,17 @@ export default function Admin() {
                 });
                 setEditUserId(null);
                 loadAll();
+            } else {
+                const errorData = await res.json();
+                alert(
+                    `Error al crear usuario: ${
+                        errorData.message || 'Error desconocido'
+                    }`
+                );
             }
         } catch (err) {
             console.error(err);
+            alert(`Error: ${err.message}`);
         }
     };
 
@@ -508,7 +584,7 @@ export default function Admin() {
                                         setProfForm({
                                             especialidad: '',
                                             user_id: '',
-                                            fecha_ingreso: null
+                                            fecha_ingreso: null,
                                         });
                                     }}
                                 >

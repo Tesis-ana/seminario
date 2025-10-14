@@ -3,9 +3,11 @@ import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
 import LogoutButton from '../components/LogoutButton';
 import Layout from '../components/Layout';
+import { useLanguage } from '../lib/LanguageContext';
 
 export default function Home() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [token, setToken] = useState(null);
     const [rut, setRut] = useState('');
     const [contra, setContra] = useState('');
@@ -88,7 +90,7 @@ export default function Home() {
         e.preventDefault();
         setError('');
         if (!rut.trim() || !contra.trim()) {
-            setError('RUT y contrasena son obligatorios');
+            setError(t.login.requiredFields);
             return;
         }
         try {
@@ -109,12 +111,12 @@ export default function Home() {
 
     if (!token) {
         return (
-            <Layout subtitle='Inicio de sesion'>
+            <Layout subtitle={t.login.title}>
                 <div className='card' style={{ maxWidth: 480 }}>
-                    <div className='section-title'>Iniciar sesion</div>
+                    <div className='section-title'>{t.login.title}</div>
                     <form onSubmit={handleSubmit} className='stack'>
                         <input
-                            placeholder='RUT'
+                            placeholder={t.login.rut}
                             value={rut}
                             onChange={handleRutChange}
                             onBlur={() => setRut(formatRut(rut))}
@@ -122,11 +124,11 @@ export default function Home() {
                         />
                         <input
                             type='password'
-                            placeholder='Contrasena'
+                            placeholder={t.login.password}
                             value={contra}
                             onChange={(e) => setContra(e.target.value)}
                         />
-                        <button type='submit'>Ingresar</button>
+                        <button type='submit'>{t.login.submit}</button>
                         {error && <p style={{ color: 'red' }}>{error}</p>}
                     </form>
                 </div>
@@ -135,13 +137,13 @@ export default function Home() {
     }
 
     return (
-        <Layout subtitle='Inicio' actions={<LogoutButton />}>
+        <Layout subtitle={t.home.title} actions={<LogoutButton />}>
             <div className='card'>
-                <div className='section-title'>Accesos rapidos</div>
+                <div className='section-title'>{t.home.quickAccess}</div>
                 <div className='stack'>
-                    <a href='/consultas'>Ir a consultas</a>
-                    <a href='/pwatscore'>Calcular PWATScore</a>
-                    <a href='/paciente'>Mis Imagenes</a>
+                    <a href='/consultas'>{t.home.goToConsults}</a>
+                    <a href='/pwatscore'>{t.home.calculatePwat}</a>
+                    <a href='/paciente'>{t.home.myImages}</a>
                 </div>
             </div>
         </Layout>

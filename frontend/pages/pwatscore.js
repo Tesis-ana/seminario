@@ -4,9 +4,12 @@ import { apiFetch, BACKEND_URL } from '../lib/api';
 import { CAT_INFO } from '../lib/categorias';
 import Layout from '../components/Layout';
 import LogoutButton from '../components/LogoutButton';
+import { EstadoSelector } from '../components/EstadoBadge';
+import { useLanguage } from '../lib/LanguageContext';
 
 export default function Pwatscore() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [token, setToken] = useState(null);
     const [imagenId, setImagenId] = useState('');
     const [imagen, setImagen] = useState(null);
@@ -26,6 +29,10 @@ export default function Pwatscore() {
     const [zoom, setZoom] = useState(1);
     const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
     const [profesional, setProfesional] = useState(null);
+    const [ladoImagen, setLadoImagen] = useState(null); // null, false (izq), true (der)
+    const [actualizandoLado, setActualizandoLado] = useState(false);
+    const [paciente, setPaciente] = useState(null);
+    const [estadoPaciente, setEstadoPaciente] = useState(null);
 
     const canvasRef = useRef(null);
     const [drawColor, setDrawColor] = useState('#ffffff');
@@ -57,6 +64,9 @@ export default function Pwatscore() {
         setNewMaskPreview(null);
         setPwatscore(null);
         setProfesional(null);
+        setLadoImagen(null); // Resetear lado
+        setPaciente(null); // Resetear paciente
+        setEstadoPaciente(null); // Resetear estado paciente
         try {
             const res = await apiFetch('/imagenes/buscar', {
                 method: 'POST',
@@ -66,6 +76,18 @@ export default function Pwatscore() {
             const json = await res.json();
             if (!res.ok) throw new Error(json.message || 'Error');
             setImagen(json);
+            setLadoImagen(json.lado); // Guardar el lado de la imagen
+
+            // Obtener datos del paciente
+            try {
+                const pacRes = await apiFetch(`/pacientes/${json.paciente_id}`);
+                if (pacRes.ok) {
+                    const pacienteData = await pacRes.json();
+                    setPaciente(pacienteData);
+                    setEstadoPaciente(pacienteData.estado);
+                }
+            } catch (_) {}
+
             try {
                 const profRes = await apiFetch(
                     `/pacientes/${json.paciente_id}/profesional`
@@ -342,30 +364,342 @@ export default function Pwatscore() {
         }
     };
 
+    const handleActualizarLado = async (nuevoLado) => {
+        if (!imagen || ladoImagen === nuevoLado) return;
+
+        setActualizandoLado(true);
+        setError('');
+
+        try {
+            const res = await apiFetch('/imagenes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: imagen.id,
+                    lado: nuevoLado,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok)
+                throw new Error(json.message || t.pwat.errorUpdatingSide);
+
+            setLadoImagen(nuevoLado);
+            const ladoTexto = nuevoLado ? t.pwat.right : t.pwat.left;
+            alert(`${t.pwat.sideUpdatedTo}: ${ladoTexto}`);
+        } catch (err) {
+            setError(err.message);
+            alert(`${t.pwat.errorUpdatingSide}: ${err.message}`);
+        } finally {
+            setActualizandoLado(false);
+        }
+    };
+
+    const handleActualizarEstadoPaciente = async (nuevoEstado) => {
+        if (!paciente || estadoPaciente === nuevoEstado) return;
+
+        setError('');
+
+        try {
+            const res = await apiFetch('/pacientes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: paciente.id,
+                    estado: nuevoEstado,
+                }),
+            });
+
+            const json = await res.json();
+
+            if (!res.ok)
+                throw new Error(json.message || t.pwat.errorUpdatingState);
+
+            setEstadoPaciente(nuevoEstado);
+            const estadoLabel = t.patientStates[nuevoEstado];
+            alert(`${t.pwat.stateUpdatedTo}: ${estadoLabel}`);
+        } catch (err) {
+            setError(err.message);
+            alert(`${t.pwat.errorUpdatingState}: ${err.message}`);
+        }
+    };
+
     return (
-        <Layout subtitle='PWAT Score' actions={<LogoutButton />}>
+        <Layout
+            subtitle={t.pwat.title}
+            actions={
+                <>
+                    <button
+                        onClick={() => router.push('/profesional')}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            transition: 'background-color 0.2s',
+                            marginRight: '8px',
+                        }}
+                        onMouseEnter={(e) =>
+                            (e.target.style.backgroundColor = '#2563eb')
+                        }
+                        onMouseLeave={(e) =>
+                            (e.target.style.backgroundColor = '#3b82f6')
+                        }
+                    >
+                        ← {t.pwat.backToPanel}
+                    </button>
+                    <LogoutButton />
+                </>
+            }
+        >
             <div className='card'>
-                <div className='section-title'>Buscar imagen</div>
+                <div className='section-title'>{t.pwat.searchImage}</div>
                 <div>
                     <input
                         type='text'
-                        placeholder='ID de imagen'
+                        placeholder={t.pwat.imageId}
                         value={imagenId}
                         onChange={(e) => setImagenId(e.target.value)}
                     />
-                    <button onClick={() => handleBuscar()}>Buscar</button>
+                    <button onClick={() => handleBuscar()}>
+                        {t.common.search}
+                    </button>
                 </div>
             </div>
 
             {imagen && (
                 <div className='card mt-1'>
-                    <div className='section-title'>Imagen #{imagen.id}</div>
+                    <div className='section-title'>
+                        {t.pwat.imageNumber}
+                        {imagen.id}
+                    </div>
                     {profesional && (
                         <div style={{ fontSize: 12, color: '#6b7280' }}>
-                            Atendida por {profesional.nombre} ·{' '}
+                            {t.pwat.attendedBy} {profesional.nombre} ·{' '}
                             {profesional.especialidad} · {profesional.correo}
                         </div>
                     )}
+
+                    {/* Información del paciente y selector de estado */}
+                    {paciente && (
+                        <div
+                            style={{
+                                marginTop: '12px',
+                                padding: '12px',
+                                backgroundColor: '#f0f9ff',
+                                borderRadius: '8px',
+                                border: '1px solid #bfdbfe',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: '12px',
+                                }}
+                            >
+                                <div>
+                                    <div
+                                        style={{
+                                            fontWeight: '600',
+                                            fontSize: '14px',
+                                            color: '#1e40af',
+                                            marginBottom: '4px',
+                                        }}
+                                    >
+                                        {t.pwat.patientLabel}:{' '}
+                                        {paciente.user?.nombre ||
+                                            paciente.nombre}
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: '12px',
+                                            color: '#6b7280',
+                                        }}
+                                    >
+                                        {t.pwat.rut}:{' '}
+                                        {paciente.user?.rut || paciente.user_id}
+                                    </div>
+                                </div>
+                                <EstadoSelector
+                                    estadoActual={estadoPaciente}
+                                    onChange={handleActualizarEstadoPaciente}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Selector de lado de la imagen */}
+                    <div
+                        style={{
+                            marginTop: '16px',
+                            padding: '12px',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '12px',
+                            }}
+                        >
+                            <div>
+                                <label
+                                    style={{
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        color: '#374151',
+                                        marginRight: '8px',
+                                    }}
+                                >
+                                    🦶 Lado del pie:
+                                </label>
+                                <span
+                                    style={{
+                                        padding: '4px 12px',
+                                        borderRadius: '12px',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        backgroundColor:
+                                            ladoImagen === null
+                                                ? '#fef3c7'
+                                                : ladoImagen
+                                                ? '#dbeafe'
+                                                : '#d1fae5',
+                                        color:
+                                            ladoImagen === null
+                                                ? '#f59e0b'
+                                                : ladoImagen
+                                                ? '#3b82f6'
+                                                : '#10b981',
+                                        border: `1px solid ${
+                                            ladoImagen === null
+                                                ? '#f59e0b20'
+                                                : ladoImagen
+                                                ? '#3b82f620'
+                                                : '#10b98120'
+                                        }`,
+                                    }}
+                                >
+                                    {ladoImagen === null
+                                        ? '⚠️ No asignado'
+                                        : ladoImagen
+                                        ? '➡️ Derecho'
+                                        : '⬅️ Izquierdo'}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    onClick={() => handleActualizarLado(false)}
+                                    disabled={
+                                        actualizandoLado || ladoImagen === false
+                                    }
+                                    style={{
+                                        padding: '6px 16px',
+                                        borderRadius: '8px',
+                                        border:
+                                            ladoImagen === false
+                                                ? '2px solid #10b981'
+                                                : '1px solid #e5e7eb',
+                                        backgroundColor:
+                                            ladoImagen === false
+                                                ? '#d1fae5'
+                                                : 'white',
+                                        color:
+                                            ladoImagen === false
+                                                ? '#10b981'
+                                                : '#6b7280',
+                                        fontWeight:
+                                            ladoImagen === false
+                                                ? '600'
+                                                : '400',
+                                        fontSize: '13px',
+                                        cursor:
+                                            actualizandoLado ||
+                                            ladoImagen === false
+                                                ? 'not-allowed'
+                                                : 'pointer',
+                                        opacity:
+                                            actualizandoLado ||
+                                            ladoImagen === false
+                                                ? 0.5
+                                                : 1,
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    ⬅️ Izquierdo
+                                </button>
+                                <button
+                                    onClick={() => handleActualizarLado(true)}
+                                    disabled={
+                                        actualizandoLado || ladoImagen === true
+                                    }
+                                    style={{
+                                        padding: '6px 16px',
+                                        borderRadius: '8px',
+                                        border:
+                                            ladoImagen === true
+                                                ? '2px solid #3b82f6'
+                                                : '1px solid #e5e7eb',
+                                        backgroundColor:
+                                            ladoImagen === true
+                                                ? '#dbeafe'
+                                                : 'white',
+                                        color:
+                                            ladoImagen === true
+                                                ? '#3b82f6'
+                                                : '#6b7280',
+                                        fontWeight:
+                                            ladoImagen === true ? '600' : '400',
+                                        fontSize: '13px',
+                                        cursor:
+                                            actualizandoLado ||
+                                            ladoImagen === true
+                                                ? 'not-allowed'
+                                                : 'pointer',
+                                        opacity:
+                                            actualizandoLado ||
+                                            ladoImagen === true
+                                                ? 0.5
+                                                : 1,
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    ➡️ Derecho
+                                </button>
+                                {actualizandoLado && (
+                                    <div
+                                        className='spinner'
+                                        style={{ marginLeft: '8px' }}
+                                    ></div>
+                                )}
+                            </div>
+                        </div>
+                        <div
+                            style={{
+                                fontSize: '11px',
+                                color: '#6b7280',
+                                marginTop: '8px',
+                                fontStyle: 'italic',
+                            }}
+                        >
+                            {ladoImagen === null &&
+                                '⚠️ Esta imagen no tiene lado asignado. Seleccione uno para completar los datos.'}
+                        </div>
+                    </div>
+
                     <div
                         style={{
                             position: 'relative',

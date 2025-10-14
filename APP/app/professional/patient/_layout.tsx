@@ -1,8 +1,7 @@
-import { Tabs, useLocalSearchParams } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function PatientTabsLayout() {
-  const { id } = useLocalSearchParams();
   return (
     <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen

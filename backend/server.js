@@ -16,6 +16,7 @@ app.use(
             'https://m4.blocktype.cl',
             'https://m4.blocktype.cl:5002',
             'https://m3.blocktype.cl:5001',
+            'https://android.blocktype.cl',
         ],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

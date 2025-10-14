@@ -43,11 +43,27 @@ export default function RegistrarAtencion() {
         async function fetchPacientesAtendidos() {
             setCargandoLista(true);
             try {
-                const res = await apiFetch(`/pacientes/profesional/${profId}`);
+                const res = await apiFetch('/profesionales/mis-pacientes');
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'Error');
+
+                // Transformar la respuesta al formato esperado
+                const pacientes = data.pacientes.map((item) => ({
+                    id: item.paciente.id,
+                    sexo: item.paciente.sexo,
+                    fecha_ingreso: item.paciente.fecha_nacimiento,
+                    user: {
+                        rut: item.paciente.rut,
+                        nombre: item.paciente.nombre,
+                        correo: item.paciente.correo,
+                    },
+                    fecha_atencion: item.fecha_atencion,
+                }));
+
                 if (!cancelado)
-                    setPacientesAtendidos(Array.isArray(data) ? data : []);
+                    setPacientesAtendidos(
+                        Array.isArray(pacientes) ? pacientes : []
+                    );
             } catch (e) {
                 if (!cancelado) setPacientesAtendidos([]);
                 console.error(e);

@@ -5,6 +5,7 @@ import { formatRUT } from '../lib/rut';
 import LogoutButton from '../components/LogoutButton';
 import { CAT_INFO } from '../lib/categorias';
 import Layout from '../components/Layout';
+import EstadoBadge from '../components/EstadoBadge';
 
 // Utilidades fuera del componente para reducir anidación de funciones
 const blendColors = (c1, c2, ratio) => {
@@ -133,6 +134,12 @@ export default function Paciente() {
                 )}
                 {pacInfo && (
                     <div>
+                        <p>
+                            <strong>Estado:</strong>{' '}
+                            <EstadoBadge
+                                estado={pacInfo.estado || 'en_tratamiento'}
+                            />
+                        </p>
                         <p>
                             <strong>Sexo:</strong> {pacInfo.sexo}
                         </p>
