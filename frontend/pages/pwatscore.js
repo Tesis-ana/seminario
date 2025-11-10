@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch, BACKEND_URL } from '../lib/api';
-import { CAT_INFO } from '../lib/categorias';
+import { CAT_INFO, PWAT_HELP } from '../lib/categorias';
 import Layout from '../components/Layout';
 import LogoutButton from '../components/LogoutButton';
 import { EstadoSelector } from '../components/EstadoBadge';
@@ -16,16 +16,19 @@ export default function Pwatscore() {
     const [maskFile, setMaskFile] = useState(null);
     const [segmentacionId, setSegmentacionId] = useState(null);
     const [maskUrl, setMaskUrl] = useState(null);
+    const [contourUrl, setContourUrl] = useState(null);
+    const [segmentacionUrl, setSegmentacionUrl] = useState(null);
     const [pwatscore, setPwatscore] = useState(null);
     const [error, setError] = useState('');
-    const [maskOpacity, setMaskOpacity] = useState(0.5);
+    const [showContour, setShowContour] = useState(true);
+    const [contourColor, setContourColor] = useState('#00ff00');
+    const [contourThickness, setContourThickness] = useState(2);
+    const [editOpacity, setEditOpacity] = useState(0.6);
     const [showCanvas, setShowCanvas] = useState(false);
     const [loadingMask, setLoadingMask] = useState(false);
     const [loadingPwatscore, setLoadingPwatscore] = useState(false);
     const [existingSegId, setExistingSegId] = useState(null);
     const [existingMaskUrl, setExistingMaskUrl] = useState(null);
-    const [newMaskPreview, setNewMaskPreview] = useState(null);
-    const [chooseMask, setChooseMask] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
     const [profesional, setProfesional] = useState(null);
@@ -35,9 +38,10 @@ export default function Pwatscore() {
     const [estadoPaciente, setEstadoPaciente] = useState(null);
 
     const canvasRef = useRef(null);
-    const [drawColor, setDrawColor] = useState('#ffffff');
+    const contourCanvasRef = useRef(null);
     const [drawing, setDrawing] = useState(false);
     const [brushSize, setBrushSize] = useState(10);
+    const [contourPath, setContourPath] = useState([]);
 
     useEffect(() => {
         const stored = localStorage.getItem('token');
@@ -56,12 +60,12 @@ export default function Pwatscore() {
         setError('');
         setImagen(null);
         setMaskUrl(null);
+        setContourUrl(null);
+        setSegmentacionUrl(null);
         setShowCanvas(false);
         setSegmentacionId(null);
         setExistingSegId(null);
         setExistingMaskUrl(null);
-        setChooseMask(false);
-        setNewMaskPreview(null);
         setPwatscore(null);
         setProfesional(null);
         setLadoImagen(null); // Resetear lado
@@ -107,9 +111,30 @@ export default function Pwatscore() {
             if (seg) {
                 setSegmentacionId(seg.id);
                 setExistingSegId(seg.id);
-                const url = `${BACKEND_URL}/segmentaciones/${json.id}/mask`;
-                setMaskUrl(url);
-                setExistingMaskUrl(url);
+
+                // Obtener URLs completas (contorno + segmentación)
+                try {
+                    const completeRes = await apiFetch(
+                        `/segmentaciones/${json.id}/completa`
+                    );
+                    if (completeRes.ok) {
+                        const segData = await completeRes.json();
+                        setMaskUrl(
+                            segData.mascara_url ||
+                                `${BACKEND_URL}/segmentaciones/${json.id}/mask`
+                        );
+                        setContourUrl(
+                            segData.contorno_url ||
+                                `${BACKEND_URL}/segmentaciones/${json.id}/contorno`
+                        );
+                        setSegmentacionUrl(segData.mascara_url);
+                    }
+                } catch (_) {
+                    // Fallback si el endpoint nuevo no está disponible
+                    const maskUrl = `${BACKEND_URL}/segmentaciones/${json.id}/mask`;
+                    setMaskUrl(maskUrl);
+                    setExistingMaskUrl(maskUrl);
+                }
                 setShowCanvas(true);
             }
             const scoreRes = await apiFetch('/pwatscore');
@@ -144,30 +169,46 @@ export default function Pwatscore() {
             const segRes = await apiFetch('/segmentaciones');
             const segs = await segRes.json();
             const seg = segs.find((s) => s.imagen_id === imagen.id);
-            if (seg) {
-                setExistingSegId(seg.id);
-                setExistingMaskUrl(
-                    `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`
-                );
-                setNewMaskPreview(URL.createObjectURL(maskFile));
-                setChooseMask(true);
-                setShowCanvas(false);
-                setLoadingMask(false);
-                return;
-            }
+
             const formData = new FormData();
-            formData.append('id', imagen.id);
-            formData.append('imagen', maskFile);
-            const res = await apiFetch('/segmentaciones/manual', {
-                method: 'POST',
-                body: formData,
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message || 'Error');
-            setSegmentacionId(json.segmentacionId);
-            const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
+            formData.append('contorno', maskFile);
+            formData.append('segmentacion', maskFile);
+
+            let res, json;
+
+            if (seg) {
+                // Ya existe una segmentación, sobreescribir
+                formData.append('id', seg.imagen_id);
+                res = await apiFetch('/segmentaciones/editar', {
+                    method: 'POST',
+                    body: formData,
+                });
+                json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Error');
+                setSegmentacionId(seg.id);
+                setExistingSegId(seg.id);
+            } else {
+                // No existe, crear nueva
+                formData.append('id', imagen.id);
+                res = await apiFetch('/segmentaciones/manual', {
+                    method: 'POST',
+                    body: formData,
+                });
+                json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Error');
+                setSegmentacionId(json.segmentacionId);
+                setExistingSegId(json.segmentacionId);
+            }
+
+            const url = `${BACKEND_URL}/segmentaciones/${
+                imagen.id
+            }/mask?${Date.now()}`;
+            const contourUrlNew = `${BACKEND_URL}/segmentaciones/${
+                imagen.id
+            }/contorno?${Date.now()}`;
             setMaskUrl(url);
-            setExistingSegId(json.segmentacionId);
+            setContourUrl(contourUrlNew);
+            setSegmentacionUrl(url);
             setExistingMaskUrl(url);
             setShowCanvas(true);
         } catch (err) {
@@ -180,10 +221,10 @@ export default function Pwatscore() {
     const handleNuevo = () => {
         setSegmentacionId(null);
         setMaskUrl(null);
+        setContourUrl(null);
+        setSegmentacionUrl(null);
         setExistingSegId(null);
         setExistingMaskUrl(null);
-        setNewMaskPreview(null);
-        setChooseMask(false);
         setShowCanvas(true);
         if (canvasRef.current) {
             const canvas = canvasRef.current;
@@ -197,57 +238,50 @@ export default function Pwatscore() {
 
     const handleAutomatico = async () => {
         if (!imagen) return;
+        setError('');
         setLoadingMask(true);
         try {
-            const res = await apiFetch('/segmentaciones/automatico', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: imagen.id }),
-            });
+            // Verificar si ya existe una segmentación
+            const segRes = await apiFetch('/segmentaciones');
+            const segs = await segRes.json();
+            const existingSeg = segs.find((s) => s.imagen_id === imagen.id);
+
+            let res;
+
+            if (existingSeg) {
+                // Ya existe, necesitamos eliminarla primero o simplemente sobrescribir
+                // Por ahora, llamaremos a /automatico que creará nueva si no existe
+                // Si existe, el backend debería manejar la actualización
+                res = await apiFetch('/segmentaciones/automatico', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagen_id: imagen.id }),
+                });
+            } else {
+                // No existe, crear nueva
+                res = await apiFetch('/segmentaciones/automatico', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagen_id: imagen.id }),
+                });
+            }
+
             const json = await res.json();
-            if (!res.ok) throw new Error(json.message || 'Error');
-            setSegmentacionId(json.segmentacionId);
-            const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask`;
+            if (!res.ok) throw new Error(json.message || 'Error al generar');
+
+            const newSegId = json.segmentacionId || json.id;
+            setSegmentacionId(newSegId);
+
+            const timestamp = Date.now();
+            const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${timestamp}`;
+            const contourUrlNew = `${BACKEND_URL}/segmentaciones/${imagen.id}/contorno?${timestamp}`;
+
             setMaskUrl(url);
-            setExistingSegId(json.segmentacionId);
+            setContourUrl(contourUrlNew);
+            setSegmentacionUrl(url);
+            setExistingSegId(newSegId);
             setExistingMaskUrl(url);
             setShowCanvas(true);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoadingMask(false);
-        }
-    };
-
-    const usarMascaraExistente = () => {
-        if (!existingSegId || !existingMaskUrl) return;
-        setSegmentacionId(existingSegId);
-        setMaskUrl(existingMaskUrl);
-        setShowCanvas(true);
-        setChooseMask(false);
-    };
-
-    const usarMascaraNueva = async () => {
-        if (!existingSegId || !maskFile) return;
-        setLoadingMask(true);
-        const formData = new FormData();
-        formData.append('id', existingSegId);
-        formData.append('imagen', maskFile);
-        try {
-            const res = await apiFetch('/segmentaciones/editar', {
-                method: 'POST',
-                body: formData,
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message || 'Error');
-            const url = `${BACKEND_URL}/segmentaciones/${
-                imagen.id
-            }/mask?${Date.now()}`;
-            setMaskUrl(url);
-            setExistingMaskUrl(url);
-            setSegmentacionId(existingSegId);
-            setShowCanvas(true);
-            setChooseMask(false);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -257,11 +291,25 @@ export default function Pwatscore() {
 
     const startDraw = (e) => {
         setDrawing(true);
-        draw(e);
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        setContourPath([{ x, y }]);
     };
-    const endDraw = () => setDrawing(false);
+
+    const endDraw = () => {
+        if (drawing && contourPath.length > 2) {
+            finalizarContornoAutomatico();
+        }
+        setDrawing(false);
+    };
+
     const draw = (e) => {
         if (!drawing) return;
+
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -269,9 +317,151 @@ export default function Pwatscore() {
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = drawColor;
-        ctx.fillRect(x, y, brushSize, brushSize);
+
+        // Dibujar línea del contorno
+        const newPath = [...contourPath, { x, y }];
+        setContourPath(newPath);
+
+        if (contourPath.length > 0) {
+            ctx.strokeStyle = '#ffffff'; // Siempre blanco
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(
+                contourPath[contourPath.length - 1].x,
+                contourPath[contourPath.length - 1].y
+            );
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
     };
+
+    const finalizarContornoAutomatico = () => {
+        if (contourPath.length < 3) {
+            setContourPath([]);
+            return;
+        }
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        // Redibujar la imagen base
+        if (maskUrl) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = maskUrl;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 256, 256);
+
+                // Ahora dibujar solo el contorno (SIN RELLENAR)
+                dibujarContornoSinRelleno(ctx);
+            };
+        } else {
+            // Si no hay máscara base, solo dibujar el contorno
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 256, 256);
+            dibujarContornoSinRelleno(ctx);
+        }
+    };
+
+    const dibujarContornoSinRelleno = (ctx) => {
+        if (contourPath.length < 3) return;
+
+        // Crear el path cerrado (solo el contorno, sin rellenar)
+        ctx.strokeStyle = '#ffffff'; // Siempre blanco
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(contourPath[0].x, contourPath[0].y);
+
+        for (let i = 1; i < contourPath.length; i++) {
+            ctx.lineTo(contourPath[i].x, contourPath[i].y);
+        }
+
+        ctx.closePath();
+        ctx.stroke();
+
+        // Limpiar el path
+        setContourPath([]);
+    };
+
+    const cancelarContorno = () => {
+        setContourPath([]);
+        // Redibujar el canvas
+        if (canvasRef.current && maskUrl) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = maskUrl;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 256, 256);
+            };
+        }
+    };
+
+    const detectarYDibujarContornos = (maskImg) => {
+        if (!contourCanvasRef.current) return;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 256;
+        tempCanvas.height = 256;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(maskImg, 0, 0, 256, 256);
+
+        const imageData = tempCtx.getImageData(0, 0, 256, 256);
+        const data = imageData.data;
+
+        // Crear una matriz binaria
+        const binary = new Array(256).fill(0).map(() => new Array(256).fill(0));
+        for (let y = 0; y < 256; y++) {
+            for (let x = 0; x < 256; x++) {
+                const idx = (y * 256 + x) * 4;
+                const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                binary[y][x] = gray > 128 ? 1 : 0;
+            }
+        }
+
+        // Detectar bordes
+        const contourCanvas = contourCanvasRef.current;
+        const ctx = contourCanvas.getContext('2d');
+        ctx.clearRect(0, 0, 256, 256);
+        ctx.strokeStyle = contourColor;
+        ctx.lineWidth = contourThickness;
+
+        for (let y = 1; y < 255; y++) {
+            for (let x = 1; x < 255; x++) {
+                if (binary[y][x] === 1) {
+                    // Verificar si es un borde
+                    const isBorder =
+                        binary[y - 1][x] === 0 ||
+                        binary[y + 1][x] === 0 ||
+                        binary[y][x - 1] === 0 ||
+                        binary[y][x + 1] === 0;
+
+                    if (isBorder) {
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (!showCanvas || !maskUrl || !contourCanvasRef.current) return;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = maskUrl;
+        img.onload = () => {
+            if (showContour) {
+                detectarYDibujarContornos(img);
+            }
+        };
+    }, [maskUrl, showCanvas, showContour, contourColor, contourThickness]);
 
     useEffect(() => {
         if (!showCanvas || !canvasRef.current) return;
@@ -293,54 +483,235 @@ export default function Pwatscore() {
     }, [maskUrl, showCanvas]);
 
     const handleGuardarMascara = async () => {
-        if (!canvasRef.current) return;
-        canvasRef.current.toBlob(async (blob) => {
-            if (!blob) {
-                setError('Error creando la imagen');
+        if (!canvasRef.current || !imagen) return;
+
+        try {
+            setError('');
+
+            const canvas = canvasRef.current;
+
+            // 1. Generar imagen del contorno (lo que hay en el canvas actualmente)
+            // El canvas ya contiene el contorno dibujado
+            const contornoBlob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg', 0.95);
+            });
+
+            if (!contornoBlob) {
+                setError('Error creando la imagen del contorno');
                 return;
             }
+
+            console.log('📐 Contorno blob creado:', contornoBlob.size, 'bytes');
+
+            // 2. Generar imagen de segmentación (contorno rellenado)
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+
+            // Copiar el contorno del canvas original
+            ctx.drawImage(canvas, 0, 0);
+
+            // Obtener datos de la imagen para detectar el contorno y rellenarlo
+            const imageData = ctx.getImageData(
+                0,
+                0,
+                tempCanvas.width,
+                tempCanvas.height
+            );
+            const data = imageData.data;
+
+            // Crear matriz binaria del contorno
+            const binary = new Array(tempCanvas.height)
+                .fill(0)
+                .map(() => new Array(tempCanvas.width).fill(0));
+            for (let y = 0; y < tempCanvas.height; y++) {
+                for (let x = 0; x < tempCanvas.width; x++) {
+                    const idx = (y * tempCanvas.width + x) * 4;
+                    const gray =
+                        (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                    binary[y][x] = gray > 128 ? 1 : 0; // 1 = blanco (parte del contorno/herida)
+                }
+            }
+
+            // Llenar la región cerrada por el contorno (flood fill mejorado)
+            // Estrategia: Rellenar DESDE LOS BORDES hacia adentro (el fondo)
+            // Lo que quede sin rellenar es la región dentro del contorno
+            const floodFillFromEdges = () => {
+                const queue = [];
+                const visited = new Set();
+
+                // Agregar todos los píxeles del borde a la cola
+                // Borde superior e inferior
+                for (let x = 0; x < tempCanvas.width; x++) {
+                    if (binary[0][x] === 0) queue.push([x, 0]);
+                    if (binary[tempCanvas.height - 1][x] === 0)
+                        queue.push([x, tempCanvas.height - 1]);
+                }
+                // Borde izquierdo y derecho
+                for (let y = 0; y < tempCanvas.height; y++) {
+                    if (binary[y][0] === 0) queue.push([0, y]);
+                    if (binary[y][tempCanvas.width - 1] === 0)
+                        queue.push([tempCanvas.width - 1, y]);
+                }
+
+                // Flood fill desde los bordes
+                while (queue.length > 0) {
+                    const [x, y] = queue.shift();
+                    const key = `${x},${y}`;
+
+                    if (visited.has(key)) continue;
+                    if (
+                        x < 0 ||
+                        x >= tempCanvas.width ||
+                        y < 0 ||
+                        y >= tempCanvas.height
+                    )
+                        continue;
+                    if (binary[y][x] === 1) continue; // Detener en el contorno
+
+                    visited.add(key);
+                    binary[y][x] = 2; // Marcar como FONDO (exterior)
+
+                    // Agregar vecinos (4 direcciones)
+                    queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+                }
+            };
+
+            // Ejecutar flood fill desde los bordes
+            floodFillFromEdges();
+
+            // Crear imagen de segmentación:
+            // - binary[y][x] === 1 → Contorno (blanco)
+            // - binary[y][x] === 0 → Interior del contorno (blanco)
+            // - binary[y][x] === 2 → Exterior/fondo (negro)
+            const segmentationData = ctx.createImageData(
+                tempCanvas.width,
+                tempCanvas.height
+            );
+            const segData = segmentationData.data;
+
+            for (let y = 0; y < tempCanvas.height; y++) {
+                for (let x = 0; x < tempCanvas.width; x++) {
+                    const idx = (y * tempCanvas.width + x) * 4;
+                    // Si es contorno (1) o interior (0) → blanco
+                    // Si es exterior (2) → negro
+                    const color = binary[y][x] === 2 ? 0 : 255;
+                    segData[idx] = color;
+                    segData[idx + 1] = color;
+                    segData[idx + 2] = color;
+                    segData[idx + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(segmentationData, 0, 0);
+
+            // Convertir la segmentación rellenada a blob
+            const segmentacionBlob = await new Promise((resolve) => {
+                tempCanvas.toBlob(resolve, 'image/jpeg', 0.95);
+            });
+
+            if (!segmentacionBlob) {
+                setError('Error creando la imagen de segmentación');
+                return;
+            }
+
+            console.log(
+                '✅ Segmentación blob creado:',
+                segmentacionBlob.size,
+                'bytes'
+            );
+
+            // 3. Preparar FormData con ambas imágenes
             const formData = new FormData();
             formData.append(
-                'imagen',
-                new File([blob], 'mask.jpg', { type: 'image/jpeg' })
+                'contorno',
+                new File([contornoBlob], 'contorno.jpg', { type: 'image/jpeg' })
             );
-            try {
-                let res, json;
-                if (segmentacionId) {
-                    formData.append('id', segmentacionId);
-                    res = await apiFetch('/segmentaciones/editar', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    json = await res.json();
-                    if (!res.ok) throw new Error(json.message || 'Error');
-                    // Asegurarse de mantener la referencia a la segmentación existente
-                    setSegmentacionId(segmentacionId);
-                    setExistingSegId(segmentacionId);
-                } else {
-                    if (!imagen) return;
-                    formData.append('id', imagen.id);
-                    res = await apiFetch('/segmentaciones/manual', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    json = await res.json();
-                    if (!res.ok) throw new Error(json.message || 'Error');
-                    const newId = json.segmentacionId;
-                    setSegmentacionId(newId);
-                    setExistingSegId(newId);
-                }
-                alert('Mascara guardada');
-                const url = `${BACKEND_URL}/segmentaciones/${
-                    imagen.id
-                }/mask?${Date.now()}`;
-                setMaskUrl(url);
-                setExistingMaskUrl(url);
-                setShowCanvas(true);
-            } catch (err) {
-                setError(err.message);
+            formData.append(
+                'segmentacion',
+                new File([segmentacionBlob], 'segmentacion.jpg', {
+                    type: 'image/jpeg',
+                })
+            );
+
+            console.log('📦 FormData preparado con:');
+            console.log('  - contorno.jpg:', contornoBlob.size, 'bytes');
+            console.log(
+                '  - segmentacion.jpg:',
+                segmentacionBlob.size,
+                'bytes'
+            );
+
+            // 4. Verificar si ya existe una segmentación para esta imagen
+            const segRes = await apiFetch('/segmentaciones');
+            const segs = await segRes.json();
+            const existingSeg = segs.find((s) => s.imagen_id === imagen.id);
+
+            // 5. Enviar al backend (sobreescribir si existe, crear si no)
+            let res, json, savedSegId;
+            if (existingSeg) {
+                // Ya existe, sobreescribir
+                formData.append('id', imagen.id);
+                res = await apiFetch('/segmentaciones/editar', {
+                    method: 'POST',
+                    body: formData,
+                });
+                json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Error');
+                savedSegId = existingSeg.id;
+                setSegmentacionId(existingSeg.id);
+                setExistingSegId(existingSeg.id);
+            } else {
+                // No existe, crear nueva
+                formData.append('id', imagen.id);
+                res = await apiFetch('/segmentaciones/manual', {
+                    method: 'POST',
+                    body: formData,
+                });
+                json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Error');
+                savedSegId = json.segmentacionId;
+                setSegmentacionId(savedSegId);
+                setExistingSegId(savedSegId);
             }
-        }, 'image/jpeg');
+
+            alert('Máscara guardada correctamente (contorno + segmentación)');
+
+            const timestamp = Date.now();
+            const url = `${BACKEND_URL}/segmentaciones/${imagen.id}/mask?${timestamp}`;
+            const contourUrlNew = `${BACKEND_URL}/segmentaciones/${imagen.id}/contorno?${timestamp}`;
+
+            console.log('✅ Guardado exitoso:');
+            console.log('  - Contorno URL:', contourUrlNew);
+            console.log('  - Segmentación URL:', url);
+            console.log('  - Segmentación ID:', savedSegId);
+
+            // Actualizar las URLs para mostrar las imágenes guardadas
+            setContourUrl(contourUrlNew);
+            setSegmentacionUrl(url);
+            setMaskUrl(url);
+            setExistingMaskUrl(url);
+            setShowCanvas(true);
+
+            // Forzar recarga de las imágenes después de un pequeño delay
+            setTimeout(() => {
+                console.log('🔄 Recargando imágenes...');
+                setContourUrl(
+                    `${BACKEND_URL}/segmentaciones/${
+                        imagen.id
+                    }/contorno?${Date.now()}`
+                );
+                setSegmentacionUrl(
+                    `${BACKEND_URL}/segmentaciones/${
+                        imagen.id
+                    }/mask?${Date.now()}`
+                );
+            }, 500);
+        } catch (err) {
+            setError(err.message);
+            console.error('Error en handleGuardarMascara:', err);
+        }
     };
 
     const handlePwatscore = async () => {
@@ -564,7 +935,7 @@ export default function Pwatscore() {
                                         marginRight: '8px',
                                     }}
                                 >
-                                    🦶 Lado del pie:
+                                    🦶 Pie del lado:
                                 </label>
                                 <span
                                     style={{
@@ -714,6 +1085,21 @@ export default function Pwatscore() {
                             width={256 * zoom}
                             height={256 * zoom}
                         />
+                        {showCanvas && showContour && (
+                            <canvas
+                                ref={contourCanvasRef}
+                                width={256}
+                                height={256}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: `${256 * zoom}px`,
+                                    height: `${256 * zoom}px`,
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        )}
                         {showCanvas && (
                             <canvas
                                 ref={canvasRef}
@@ -722,7 +1108,7 @@ export default function Pwatscore() {
                                     top: 0,
                                     left: 0,
                                     cursor: 'crosshair',
-                                    opacity: maskOpacity,
+                                    opacity: editOpacity,
                                     width: `${256 * zoom}px`,
                                     height: `${256 * zoom}px`,
                                 }}
@@ -734,16 +1120,119 @@ export default function Pwatscore() {
                         )}
                     </div>
 
+                    {/* Visualización del contorno y segmentación guardados */}
+                    {showCanvas && (contourUrl || segmentacionUrl) && (
+                        <div
+                            style={{
+                                marginTop: '20px',
+                                padding: '12px',
+                                backgroundColor: '#f3f4f6',
+                                borderRadius: '8px',
+                                border: '1px solid #d1d5db',
+                            }}
+                        >
+                            <h4
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: '12px',
+                                    color: '#111827',
+                                }}
+                            >
+                                📊 Segmentación Guardada
+                            </h4>
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns:
+                                        'repeat(auto-fit, minmax(200px, 1fr))',
+                                    gap: '12px',
+                                }}
+                            >
+                                {contourUrl && (
+                                    <div
+                                        style={{
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '6px',
+                                            padding: '8px',
+                                            backgroundColor: 'white',
+                                        }}
+                                    >
+                                        <p
+                                            style={{
+                                                margin: '0 0 8px 0',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                color: '#374151',
+                                            }}
+                                        >
+                                            🎨 Contorno
+                                        </p>
+                                        <img
+                                            src={contourUrl}
+                                            alt='Contorno'
+                                            style={{
+                                                width: '100%',
+                                                height: 'auto',
+                                                borderRadius: '4px',
+                                                border: '1px solid #e5e7eb',
+                                            }}
+                                            onError={(e) => {
+                                                console.error(
+                                                    'Error cargando contorno:',
+                                                    contourUrl
+                                                );
+                                                e.target.style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                {segmentacionUrl && (
+                                    <div
+                                        style={{
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '6px',
+                                            padding: '8px',
+                                            backgroundColor: 'white',
+                                        }}
+                                    >
+                                        <p
+                                            style={{
+                                                margin: '0 0 8px 0',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                color: '#374151',
+                                            }}
+                                        >
+                                            ✅ Segmentación Rellenada
+                                        </p>
+                                        <img
+                                            src={segmentacionUrl}
+                                            alt='Segmentación'
+                                            style={{
+                                                width: '100%',
+                                                height: 'auto',
+                                                borderRadius: '4px',
+                                                border: '1px solid #e5e7eb',
+                                            }}
+                                            onError={(e) => {
+                                                console.error(
+                                                    'Error cargando segmentación:',
+                                                    segmentacionUrl
+                                                );
+                                                e.target.style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div className='mt-1'>
                         <input
                             type='file'
                             onChange={(e) => {
                                 setMaskFile(e.target.files[0]);
-                                setNewMaskPreview(
-                                    e.target.files[0]
-                                        ? URL.createObjectURL(e.target.files[0])
-                                        : null
-                                );
                             }}
                         />
                         <button onClick={handleManual}>Subir mascara</button>
@@ -780,81 +1269,77 @@ export default function Pwatscore() {
                         </span>
                     </div>
 
-                    {chooseMask && (
-                        <div className='mt-1'>
-                            <p>Ya existe una mascara. Elija cual conservar:</p>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div>
-                                    <p>Existente</p>
-                                    <img
-                                        src={existingMaskUrl}
-                                        alt='existente'
-                                        width={128}
-                                        height={128}
-                                    />
-                                    <button onClick={usarMascaraExistente}>
-                                        Usar esta
-                                    </button>
-                                </div>
-                                <div>
-                                    <p>Nueva</p>
-                                    {newMaskPreview && (
-                                        <img
-                                            src={newMaskPreview}
-                                            alt='nueva'
-                                            width={128}
-                                            height={128}
-                                        />
-                                    )}
-                                    <button onClick={usarMascaraNueva}>
-                                        Usar esta
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {showCanvas && (
                         <div className='mt-1'>
-                            <label>Color: </label>
-                            <select
-                                value={drawColor}
-                                onChange={(e) => setDrawColor(e.target.value)}
+                            <div style={{ marginBottom: '12px' }}>
+                                <label>
+                                    <input
+                                        type='checkbox'
+                                        checked={showContour}
+                                        onChange={(e) =>
+                                            setShowContour(e.target.checked)
+                                        }
+                                        style={{ marginRight: '8px' }}
+                                    />
+                                    Mostrar contorno de la máscara
+                                </label>
+                            </div>
+
+                            <div style={{ marginBottom: '12px' }}>
+                                <label>Opacidad del área de edición: </label>
+                                <input
+                                    type='range'
+                                    min='0'
+                                    max='1'
+                                    step='0.1'
+                                    value={editOpacity}
+                                    onChange={(e) =>
+                                        setEditOpacity(
+                                            parseFloat(e.target.value)
+                                        )
+                                    }
+                                />
+                                <span style={{ marginLeft: '0.5rem' }}>
+                                    {Math.round(editOpacity * 100)}%
+                                </span>
+                                <span
+                                    style={{
+                                        marginLeft: '1rem',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        fontStyle: 'italic',
+                                    }}
+                                >
+                                    (ajusta para ver mejor tus trazos)
+                                </span>
+                            </div>
+
+                            <div
+                                style={{
+                                    marginBottom: '12px',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#e0f2fe',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    border: '1px solid #7dd3fc',
+                                }}
                             >
-                                <option value='#ffffff'>Blanco</option>
-                                <option value='#000000'>Negro</option>
-                            </select>
-                            <label style={{ marginLeft: '1rem' }}>
-                                Opacidad:
-                            </label>
-                            <input
-                                type='range'
-                                min='0'
-                                max='1'
-                                step='0.05'
-                                value={maskOpacity}
-                                onChange={(e) =>
-                                    setMaskOpacity(parseFloat(e.target.value))
-                                }
-                            />
-                            <label style={{ marginLeft: '1rem' }}>
-                                Tamano:
-                            </label>
-                            <input
-                                type='range'
-                                min='1'
-                                max='50'
-                                value={brushSize}
-                                onChange={(e) =>
-                                    setBrushSize(parseInt(e.target.value))
-                                }
-                            />
-                            <span style={{ marginLeft: '0.5rem' }}>
-                                {brushSize}
-                            </span>
+                                <span
+                                    style={{
+                                        fontWeight: '600',
+                                        color: '#0369a1',
+                                    }}
+                                >
+                                    💡 Dibuja el contorno de la herida con trazo
+                                    blanco. Al guardar, se rellenará
+                                    automáticamente para generar la segmentación
+                                    completa.
+                                </span>
+                            </div>
+
                             <button
                                 onClick={handleGuardarMascara}
-                                style={{ marginLeft: '1rem' }}
+                                style={{ marginLeft: '0' }}
                             >
                                 Guardar mascara
                             </button>
@@ -879,33 +1364,78 @@ export default function Pwatscore() {
 
             {pwatscore && (
                 <div className='card mt-1'>
-                    <div className='section-title'>Categorias</div>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                        <div key={n}>
-                            <label
-                                title={CAT_INFO[n]}
-                            >{`Categoria ${n}: `}</label>
-                            <input
-                                type='number'
-                                min='0'
-                                max='4'
-                                value={pwatscore[`cat${n}`]}
-                                onChange={(e) => {
-                                    const val = Math.min(
-                                        4,
-                                        Math.max(
-                                            0,
-                                            parseInt(e.target.value, 10) || 0
-                                        )
-                                    );
-                                    setPwatscore({
-                                        ...pwatscore,
-                                        [`cat${n}`]: val,
-                                    });
+                    <div className='section-title'>Categorías</div>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
+                        const help = PWAT_HELP[n];
+                        const tooltip = help
+                            ? `${help.title}\n${
+                                  help.desc
+                              }\n\nEscala (0-4):\n${help.scale.join('\n')}`
+                            : CAT_INFO[n];
+                        return (
+                            <div
+                                key={n}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    marginBottom: 8,
                                 }}
-                            />
-                        </div>
-                    ))}
+                            >
+                                <label
+                                    title={tooltip}
+                                    style={{
+                                        minWidth: 260,
+                                        cursor: 'help',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                    }}
+                                >
+                                    {`Categoría ${n}: ${CAT_INFO[n]}`}
+                                    <span
+                                        aria-label='Ayuda'
+                                        title={tooltip}
+                                        style={{
+                                            display: 'inline-block',
+                                            marginLeft: 6,
+                                            width: 18,
+                                            height: 18,
+                                            lineHeight: '18px',
+                                            textAlign: 'center',
+                                            borderRadius: '50%',
+                                            background: '#e5e7eb',
+                                            color: '#374151',
+                                            fontWeight: 700,
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        ?
+                                    </span>
+                                </label>
+                                <input
+                                    type='number'
+                                    min='0'
+                                    max='4'
+                                    value={pwatscore[`cat${n}`]}
+                                    onChange={(e) => {
+                                        const val = Math.min(
+                                            4,
+                                            Math.max(
+                                                0,
+                                                parseInt(e.target.value, 10) ||
+                                                    0
+                                            )
+                                        );
+                                        setPwatscore({
+                                            ...pwatscore,
+                                            [`cat${n}`]: val,
+                                        });
+                                    }}
+                                />
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </Layout>

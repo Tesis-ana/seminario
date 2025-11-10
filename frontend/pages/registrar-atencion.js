@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiFetch } from '../lib/api';
-import { formatRUT, RUTInput } from '../lib/rut';
+import { formatRUT, RUTInput, validateRUT } from '../lib/rut';
 import Layout from '../components/Layout';
 import LogoutButton from '../components/LogoutButton';
 
@@ -16,6 +16,15 @@ export default function RegistrarAtencion() {
     const [error, setError] = useState('');
     const [exito, setExito] = useState('');
     const searchTimeout = useRef(null);
+
+    // Estados para crear nuevo paciente
+    const [mostrarFormNuevo, setMostrarFormNuevo] = useState(false);
+    const [nuevoRut, setNuevoRut] = useState('');
+    const [nuevoNombre, setNuevoNombre] = useState('');
+    const [nuevoCorreo, setNuevoCorreo] = useState('');
+    const [nuevoSexo, setNuevoSexo] = useState('M');
+    const [nuevaFechaNac, setNuevaFechaNac] = useState('');
+    const [creandoPaciente, setCreandoPaciente] = useState(false);
 
     useEffect(() => {
         const stored = localStorage.getItem('token');
@@ -127,10 +136,98 @@ export default function RegistrarAtencion() {
         }
     };
 
+    const crearNuevoPaciente = async () => {
+        setError('');
+        setExito('');
+
+        // Validaciones mínimas para un único flujo "Agregar paciente"
+        if (
+            !nuevoRut ||
+            !nuevoNombre ||
+            !nuevoCorreo ||
+            !nuevaFechaNac ||
+            !nuevoSexo
+        ) {
+            setError('Todos los campos son obligatorios');
+            return;
+        }
+
+        setCreandoPaciente(true);
+
+        try {
+            const res = await apiFetch('/pacientes/agregar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rut: nuevoRut,
+                    nombre: nuevoNombre,
+                    correo: nuevoCorreo,
+                    contra: nuevoRut, // contraseña inicial = RUT
+                    sexo: nuevoSexo,
+                    fecha_nacimiento: nuevaFechaNac,
+                    profesional_id: profId,
+                }),
+            });
+
+            const json = await res.json();
+            if (!res.ok)
+                throw new Error(json.message || 'Error al agregar paciente');
+
+            setExito('Paciente creado y atención registrada exitosamente');
+
+            // Limpiar formulario
+            setNuevoRut('');
+            setNuevoNombre('');
+            setNuevoCorreo('');
+            setNuevoSexo('M');
+            setNuevaFechaNac('');
+            setMostrarFormNuevo(false);
+
+            // Redirigir al panel
+            setTimeout(() => {
+                router.push('/profesional');
+            }, 1200);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setCreandoPaciente(false);
+        }
+    };
+
     if (!token) return null;
 
     return (
-        <Layout subtitle='Registrar Atención' actions={<LogoutButton />}>
+        <Layout
+            subtitle='Registrar Atención'
+            actions={
+                <>
+                    <button
+                        onClick={() => router.push('/profesional')}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            transition: 'background-color 0.2s',
+                            marginRight: '8px',
+                        }}
+                        onMouseEnter={(e) =>
+                            (e.target.style.backgroundColor = '#2563eb')
+                        }
+                        onMouseLeave={(e) =>
+                            (e.target.style.backgroundColor = '#3b82f6')
+                        }
+                    >
+                        ← Volver al Panel
+                    </button>
+                    <LogoutButton />
+                </>
+            }
+        >
             <div className='card'>
                 <div className='section-title'>Buscar paciente por RUT</div>
                 <RUTInput
@@ -153,6 +250,214 @@ export default function RegistrarAtencion() {
                     </div>
                 )}
                 {exito && <p style={{ color: 'green' }}>{exito}</p>}
+            </div>
+
+            {/* Formulario para crear nuevo paciente */}
+            <div className='card' style={{ marginTop: '1rem' }}>
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1rem',
+                    }}
+                >
+                    <div className='section-title' style={{ margin: 0 }}>
+                        Crear nuevo paciente
+                    </div>
+                    <button
+                        onClick={() => setMostrarFormNuevo(!mostrarFormNuevo)}
+                        style={{
+                            padding: '6px 12px',
+                            backgroundColor: mostrarFormNuevo
+                                ? '#ef4444'
+                                : '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                        }}
+                    >
+                        {mostrarFormNuevo ? '✕ Cancelar' : '+ Nuevo paciente'}
+                    </button>
+                </div>
+
+                {mostrarFormNuevo && (
+                    <div
+                        style={{
+                            padding: '1rem',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb',
+                        }}
+                    >
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label
+                                style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '600',
+                                }}
+                            >
+                                RUT *
+                            </label>
+                            <RUTInput
+                                value={nuevoRut}
+                                onChange={setNuevoRut}
+                                placeholder='12.345.678-9'
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label
+                                style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '600',
+                                }}
+                            >
+                                Nombre completo *
+                            </label>
+                            <input
+                                type='text'
+                                value={nuevoNombre}
+                                onChange={(e) => setNuevoNombre(e.target.value)}
+                                placeholder='Juan Pérez González'
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label
+                                style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '600',
+                                }}
+                            >
+                                Correo electrónico *
+                            </label>
+                            <input
+                                type='email'
+                                value={nuevoCorreo}
+                                onChange={(e) => setNuevoCorreo(e.target.value)}
+                                placeholder='correo@ejemplo.com'
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label
+                                style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '600',
+                                }}
+                            >
+                                Sexo *
+                            </label>
+                            <select
+                                value={nuevoSexo}
+                                onChange={(e) => setNuevoSexo(e.target.value)}
+                                style={{ width: '100%' }}
+                            >
+                                <option value='M'>Masculino</option>
+                                <option value='F'>Femenino</option>
+                                <option value='O'>Otro</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label
+                                style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontWeight: '600',
+                                }}
+                            >
+                                Fecha de nacimiento *
+                            </label>
+                            <input
+                                type='date'
+                                value={nuevaFechaNac}
+                                onChange={(e) =>
+                                    setNuevaFechaNac(e.target.value)
+                                }
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div
+                            style={{
+                                fontSize: '12px',
+                                color: '#6b7280',
+                                marginBottom: '1rem',
+                                padding: '8px',
+                                backgroundColor: '#eff6ff',
+                                borderRadius: '4px',
+                                border: '1px solid #bfdbfe',
+                            }}
+                        >
+                            ℹ️ La contraseña inicial será el RUT del paciente.
+                            Se registrará automáticamente la atención.
+                        </div>
+
+                        <button
+                            onClick={crearNuevoPaciente}
+                            disabled={
+                                creandoPaciente ||
+                                !validateRUT(nuevoRut) ||
+                                !nuevoNombre ||
+                                !nuevoCorreo ||
+                                !nuevaFechaNac
+                            }
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor:
+                                    creandoPaciente ||
+                                    !validateRUT(nuevoRut) ||
+                                    !nuevoNombre ||
+                                    !nuevoCorreo ||
+                                    !nuevaFechaNac
+                                        ? '#9ca3af'
+                                        : '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor:
+                                    creandoPaciente ||
+                                    !validateRUT(nuevoRut) ||
+                                    !nuevoNombre ||
+                                    !nuevoCorreo ||
+                                    !nuevaFechaNac
+                                        ? 'not-allowed'
+                                        : 'pointer',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                width: '100%',
+                            }}
+                        >
+                            {creandoPaciente
+                                ? '⏳ Creando paciente...'
+                                : !validateRUT(nuevoRut)
+                                ? 'RUT inválido'
+                                : '✓ Crear paciente y registrar atención'}
+                        </button>
+                        {!validateRUT(nuevoRut) && nuevoRut && (
+                            <div
+                                style={{
+                                    marginTop: '8px',
+                                    color: '#ef4444',
+                                    fontSize: '12px',
+                                }}
+                            >
+                                Corrige el RUT para continuar.
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className='card' style={{ marginTop: '1rem' }}>

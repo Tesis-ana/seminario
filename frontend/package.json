@@ -8,9 +8,13 @@
         "test": "bun test --environment=jsdom --preload ./test/setupTests.ts"
     },
     "dependencies": {
+        "jspdf": "^3.0.3",
+        "jspdf-autotable": "^5.0.2",
         "next": "^14.2.32",
         "react": "18.2.0",
-        "react-dom": "18.2.0"
+        "react-dom": "18.2.0",
+        "recharts": "^3.3.0",
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.8.0",

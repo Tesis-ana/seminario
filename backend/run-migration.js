@@ -2,6 +2,7 @@ const db = require('./models');
 const migration001 = require('./migrations/001-setup-atencion-table');
 const migration002 = require('./migrations/002-update-imagen-table-lado');
 const migration003 = require('./migrations/003-add-estado-to-paciente');
+const migration005 = require('./migrations/005-create-laboratorio-table');
 
 /**
  * Script para ejecutar las migraciones de base de datos de forma segura
@@ -46,6 +47,10 @@ async function runMigration() {
         console.log('\n3️⃣ Migración 003: Agregar campo estado a paciente...');
         await migration003.up(db.sequelize.getQueryInterface(), db.Sequelize);
         console.log('✅ Migración 003 completada');
+
+        console.log('\n4️⃣ Migración 005: Crear tabla laboratorio...');
+        await migration005.up(db.sequelize.getQueryInterface(), db.Sequelize);
+        console.log('✅ Migración 005 completada');
 
         // Verificar que las relaciones funcionen correctamente
         console.log('🧪 Verificando relaciones...');
@@ -96,6 +101,7 @@ async function runMigration() {
         console.log('- ✅ Tabla atencion verificada/creada');
         console.log('- ✅ Tabla imagen actualizada con campo "lado"');
         console.log('- ✅ Tabla paciente actualizada con campo "estado"');
+        console.log('- ✅ Tabla laboratorio creada con FK a paciente');
         console.log('- ✅ Índices agregados para mejor performance');
         console.log('- ✅ Foreign keys configuradas');
         console.log('- ✅ Relaciones verificadas');

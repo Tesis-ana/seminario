@@ -37,8 +37,14 @@ const listarSegmentacions = async (req, res) => {
 };
 
 const crearSegmentacionManual = (req, res) => {
-    upload(req, res, async function (err) {
-        if (respondMulterError(err, res)) return;
+    // Usar multer.any() para aceptar múltiples archivos
+    const multer = require('multer');
+    const upload = multer({ storage: multer.memoryStorage() });
+
+    upload.any()(req, res, async function (err) {
+        if (err) {
+            return respondMulterError(err, res);
+        }
         try {
             const { id } = req.body;
             if (!id) {
@@ -63,8 +69,25 @@ const crearSegmentacionManual = (req, res) => {
                     .json({ message: 'La imagen no existe.' });
             }
 
-            const foto = req.file;
-            if (!foto || !isJpegMime(foto.mimetype)) {
+            // Esperamos dos archivos: contorno y segmentacion
+            const contornoFile = req.files?.find(
+                (f) => f.fieldname === 'contorno'
+            );
+            const segmentacionFile = req.files?.find(
+                (f) => f.fieldname === 'segmentacion'
+            );
+
+            if (!contornoFile || !segmentacionFile) {
+                return res.status(400).json({
+                    message:
+                        'Se requieren ambos archivos: contorno y segmentacion.',
+                });
+            }
+
+            if (
+                !isJpegMime(contornoFile.mimetype) ||
+                !isJpegMime(segmentacionFile.mimetype)
+            ) {
                 return res.status(400).json({
                     message:
                         'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
@@ -77,16 +100,25 @@ const crearSegmentacionManual = (req, res) => {
             );
 
             ensureDirExists(MASKS_DIR);
-            // Guardar el archivo en la ruta especificada
-            fs.writeFileSync(
-                path.join(MASKS_DIR, `${filename}.jpg`),
-                foto.buffer
+
+            // Guardar contorno
+            const rutaContorno = path.join(
+                MASKS_DIR,
+                `${filename}_contorno.jpg`
             );
-            const rutaArchivo = path.join(MASKS_DIR, `${filename}.jpg`);
+            fs.writeFileSync(rutaContorno, contornoFile.buffer);
+
+            // Guardar segmentación (relleno completo)
+            const rutaMascara = path.join(
+                MASKS_DIR,
+                `${filename}_segmentacion.jpg`
+            );
+            fs.writeFileSync(rutaMascara, segmentacionFile.buffer);
 
             const segmentacion = await db.Segmentacion.create({
                 imagen_id: id,
-                ruta_mascara: rutaArchivo,
+                ruta_mascara: rutaMascara,
+                ruta_contorno: rutaContorno,
                 metodo: 'manual',
             });
             if (!segmentacion) {
@@ -96,7 +128,7 @@ const crearSegmentacionManual = (req, res) => {
             }
             await segmentacion.save();
             return res.status(201).json({
-                message: 'Segmentacion automatica creada correctamente.',
+                message: 'Segmentacion manual creada correctamente.',
                 segmentacionId: segmentacion.id,
             });
         } catch (err) {
@@ -331,12 +363,27 @@ const crearSegmentacionAutomatica = async (req, res) => {
         ensureDirExists(MASKS_DIR);
         const rutaMascaraArchivo = path.join(MASKS_DIR, `${baseName}.jpg`);
 
-        // 6) Guardar en la BD
-        const segmentacion = await db.Segmentacion.create({
-            imagen_id: id,
-            ruta_mascara: rutaMascaraArchivo,
-            metodo: 'automatica',
+        // 6) Verificar si ya existe una segmentación para esta imagen
+        const existingSeg = await db.Segmentacion.findOne({
+            where: { imagen_id: id },
         });
+
+        let segmentacion;
+        if (existingSeg) {
+            // Actualizar la segmentación existente
+            await existingSeg.update({
+                ruta_mascara: rutaMascaraArchivo,
+                metodo: 'automatica',
+            });
+            segmentacion = existingSeg;
+        } else {
+            // Crear nueva segmentación
+            segmentacion = await db.Segmentacion.create({
+                imagen_id: id,
+                ruta_mascara: rutaMascaraArchivo,
+                metodo: 'automatica',
+            });
+        }
 
         return res.status(201).json({
             message: 'Segmentacion automatica creada correctamente.',
@@ -353,31 +400,52 @@ const crearSegmentacionAutomatica = async (req, res) => {
 };
 
 const editarSegmentacion = (req, res) => {
-    upload(req, res, async function (err) {
-        if (respondMulterError(err, res)) return;
+    const multer = require('multer');
+    const uploadMultiple = multer({ storage: multer.memoryStorage() });
+
+    uploadMultiple.any()(req, res, async function (err) {
+        if (err) {
+            return respondMulterError(err, res);
+        }
         try {
-            const { imagen_id } = req.body;
-            if (!imagen_id) {
+            const { id, imagen_id } = req.body;
+            const segId = id || imagen_id;
+
+            if (!segId) {
                 return res
                     .status(400)
-                    .json({ message: 'El imagen_id es requerido.' });
+                    .json({ message: 'El id de segmentacion es requerido.' });
             }
+
+            // Buscar por imagen_id si viene así desde el frontend
             const segmentacion = await db.Segmentacion.findOne({
-                where: { imagen_id },
+                where: { imagen_id: segId },
             });
             if (!segmentacion) {
                 return res
                     .status(404)
                     .json({ message: 'La segmentacion no existe.' });
             }
-            const foto = req.file;
-            if (!foto) {
-                return res
-                    .status(400)
-                    .json({ message: 'La imagen es requerida.' });
+
+            // Esperamos dos archivos: contorno y segmentacion
+            const contornoFile = req.files?.find(
+                (f) => f.fieldname === 'contorno'
+            );
+            const segmentacionFile = req.files?.find(
+                (f) => f.fieldname === 'segmentacion'
+            );
+
+            if (!contornoFile || !segmentacionFile) {
+                return res.status(400).json({
+                    message:
+                        'Se requieren ambos archivos: contorno y segmentacion.',
+                });
             }
 
-            if (!isJpegMime(foto.mimetype)) {
+            if (
+                !isJpegMime(contornoFile.mimetype) ||
+                !isJpegMime(segmentacionFile.mimetype)
+            ) {
                 return res.status(400).json({
                     message:
                         'Formato de imagen no permitido. Solo se aceptan archivos JPG.',
@@ -385,8 +453,15 @@ const editarSegmentacion = (req, res) => {
             }
 
             const imagen = await db.Imagen.findOne({
-                where: { id: imagen_id },
+                where: { id: segId },
             });
+
+            if (!imagen) {
+                return res.status(404).json({
+                    message: 'La imagen no existe.',
+                });
+            }
+
             const filename = path.basename(
                 imagen.nombre_archivo,
                 path.extname(imagen.nombre_archivo)
@@ -394,15 +469,25 @@ const editarSegmentacion = (req, res) => {
 
             ensureDirExists(MASKS_DIR);
 
-            const rutaArchivo = path.join(MASKS_DIR, `${filename}.jpg`);
+            // Guardar contorno
+            const rutaContorno = path.join(
+                MASKS_DIR,
+                `${filename}_contorno.jpg`
+            );
+            fs.writeFileSync(rutaContorno, contornoFile.buffer);
 
-            // Actualizar la ruta de la máscara en la base de datos
-            segmentacion.ruta_mascara = rutaArchivo;
+            // Guardar segmentación
+            const rutaMascara = path.join(
+                MASKS_DIR,
+                `${filename}_segmentacion.jpg`
+            );
+            fs.writeFileSync(rutaMascara, segmentacionFile.buffer);
+
+            // Actualizar las rutas en la base de datos
+            segmentacion.ruta_mascara = rutaMascara;
+            segmentacion.ruta_contorno = rutaContorno;
 
             await segmentacion.save();
-            // Guardar el archivo en la ruta especificada
-            const filePath = path.join(MASKS_DIR, `${filename}.jpg`);
-            fs.writeFileSync(filePath, foto.buffer);
 
             return res.status(200).json({
                 message: 'Segmentacion editada correctamente.',
@@ -430,6 +515,29 @@ const descargarMascara = async (req, res) => {
     } catch (err) {
         return res.status(500).json({
             message: 'Error al obtener mascara.',
+            err,
+        });
+    }
+};
+
+const descargarContorno = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const seg = await db.Segmentacion.findOne({ where: { imagen_id: id } });
+        if (!seg) {
+            return res
+                .status(404)
+                .json({ message: 'Segmentacion no encontrada.' });
+        }
+        if (!seg.ruta_contorno) {
+            return res.status(404).json({
+                message: 'Contorno no disponible para esta segmentacion.',
+            });
+        }
+        return res.sendFile(path.resolve(seg.ruta_contorno));
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener contorno.',
             err,
         });
     }
@@ -498,6 +606,41 @@ const eliminarSegmentacion = async (req, res) => {
     }
 };
 
+const obtenerSegmentacionCompleta = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const seg = await db.Segmentacion.findOne({ where: { imagen_id: id } });
+        if (!seg) {
+            return res
+                .status(404)
+                .json({ message: 'Segmentacion no encontrada.' });
+        }
+
+        // Retornar información de ambas imágenes
+        const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+
+        return res.status(200).json({
+            id: seg.id,
+            imagen_id: seg.imagen_id,
+            metodo: seg.metodo,
+            fecha_creacion: seg.fecha_creacion,
+            mascara_url: seg.ruta_mascara
+                ? `${BACKEND_URL}/segmentaciones/${id}/mask`
+                : null,
+            contorno_url: seg.ruta_contorno
+                ? `${BACKEND_URL}/segmentaciones/${id}/contorno`
+                : null,
+            ruta_mascara: seg.ruta_mascara,
+            ruta_contorno: seg.ruta_contorno,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al obtener segmentacion completa.',
+            err,
+        });
+    }
+};
+
 module.exports = {
     listarSegmentacions,
     crearSegmentacionManual,
@@ -507,5 +650,7 @@ module.exports = {
     crearSegmentacionAutomatica,
     editarSegmentacion,
     descargarMascara,
+    descargarContorno,
+    obtenerSegmentacionCompleta,
     __setSpawn,
 };

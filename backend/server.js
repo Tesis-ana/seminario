@@ -27,9 +27,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Verificar token en todas las rutas excepto login y raiz
+// Verificar token en todas las rutas excepto login, crear usuario y raiz
 app.use((req, res, next) => {
-    const openPaths = ['/', '/users/login'];
+    const openPaths = ['/', '/users/login', '/users/crear'];
     const imagenRegex = /^\/imagenes\/\d+\/archivo$/;
     const maskRegex = /^\/segmentaciones\/\d+\/mask$/;
     if (

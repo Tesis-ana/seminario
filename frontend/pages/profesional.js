@@ -404,6 +404,9 @@ export default function ProfesionalPacientes() {
                     <a href='/registrar-atencion' className='btn-primary'>
                         Registrar atencion
                     </a>
+                    <a href='/laboratorio' className='btn-primary'>
+                        Laboratorio
+                    </a>
                     <LogoutButton />
                 </>
             }

@@ -3,7 +3,10 @@ const Op = db.Sequelize.Op;
 
 const listarPacientes = async (req, res) => {
     try {
-        const data = await db.Paciente.findAll();
+        // Incluir datos del usuario asociado (RUT y nombre)
+        const data = await db.Paciente.findAll({
+            include: [{ model: db.User, as: 'user' }],
+        });
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({
@@ -75,9 +78,10 @@ const buscarPacienteRut = async (req, res) => {
     if (!rut) {
         return res.status(400).json({ message: 'RUT requerido.' });
     }
+    // Comparar por RUT formateado o "limpio" indistintamente
     const limpio = rut.replace(/[.-]/g, '');
     try {
-        const data = await db.Paciente.findOne({
+        const paciente = await db.Paciente.findOne({
             where: db.Sequelize.where(
                 db.Sequelize.fn(
                     'REPLACE',
@@ -94,10 +98,10 @@ const buscarPacienteRut = async (req, res) => {
             ),
             include: [{ model: db.User, as: 'user' }],
         });
-        if (!data) {
+        if (!paciente) {
             return res.status(404).json({ message: 'El paciente no existe.' });
         }
-        return res.status(200).json(data);
+        return res.status(200).json(paciente);
     } catch (err) {
         return res.status(500).json({
             message: 'Error al buscar paciente.',
@@ -190,18 +194,126 @@ const obtenerPacienteActual = async (req, res) => {
         return res.status(400).json({ message: 'RUT no disponible.' });
     }
     try {
-        const data = await db.Paciente.findOne({
+        // user_id referencia el RUT, por lo que podemos buscar directamente
+        const paciente = await db.Paciente.findOne({
             where: { user_id: rut },
             include: [{ model: db.User, as: 'user' }],
         });
-        if (!data) {
+        if (!paciente) {
             return res.status(404).json({ message: 'El paciente no existe.' });
         }
-        return res.status(200).json(data);
+        return res.status(200).json(paciente);
     } catch (err) {
         return res
             .status(500)
             .json({ message: 'Error al obtener paciente.', err });
+    }
+};
+
+// Crear usuario (si no existe) y paciente en una sola operación
+const bcrypt = require('bcrypt');
+const { validateRUT, formatRUT } = require('../utils/rut');
+const saltRounds = 10;
+
+const agregarPacienteCompleto = async (req, res) => {
+    try {
+        const {
+            rut,
+            nombre,
+            correo,
+            contra, // opcional; si no se envía, se usa el RUT
+            sexo,
+            fecha_nacimiento, // opcional
+            comentarios = null,
+            profesional_id = null,
+        } = req.body;
+
+        if (!rut || !nombre || !correo || !sexo) {
+            return res.status(400).json({
+                message:
+                    'Los campos rut, nombre, correo y sexo son obligatorios.',
+            });
+        }
+
+        if (!validateRUT(rut)) {
+            return res.status(400).json({ message: 'RUT inválido.' });
+        }
+
+        const rutFmt = formatRUT(rut);
+
+        // Upsert de usuario por RUT
+        let user = await db.User.findOne({ where: { rut: rutFmt } });
+        let userCreado = false;
+        if (!user) {
+            const hashedPassword = await bcrypt.hash(
+                contra || rutFmt,
+                saltRounds
+            );
+            user = await db.User.create({
+                rut: rutFmt,
+                nombre,
+                correo,
+                rol: 'paciente',
+                contrasena_hash: hashedPassword,
+                sexo,
+                fecha_nacimiento: fecha_nacimiento || null,
+            });
+            userCreado = true;
+        } else {
+            // Actualizar datos básicos si cambian
+            await db.User.update(
+                {
+                    nombre,
+                    correo,
+                    sexo,
+                    fecha_nacimiento: fecha_nacimiento || user.fecha_nacimiento,
+                },
+                { where: { rut: rutFmt } }
+            );
+        }
+
+        // Upsert de paciente por user_id (RUT)
+        let paciente = await db.Paciente.findOne({
+            where: { user_id: rutFmt },
+            include: [{ model: db.User, as: 'user' }],
+        });
+        let pacienteCreado = false;
+        if (!paciente) {
+            paciente = await db.Paciente.create({
+                sexo,
+                fecha_ingreso: new Date(),
+                comentarios,
+                user_id: rutFmt,
+            });
+            pacienteCreado = true;
+        }
+
+        // Registrar atención si se entrega profesional_id
+        let atencionCreada = false;
+        if (profesional_id) {
+            await db.Atencion.create({
+                paciente_id: paciente.id,
+                profesional_id,
+                fecha_atencion: new Date(),
+            });
+            atencionCreada = true;
+        }
+
+        return res.status(201).json({
+            message: 'Paciente agregado correctamente.',
+            user,
+            paciente,
+            created: {
+                user: userCreado,
+                paciente: pacienteCreado,
+                atencion: atencionCreada,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Error al agregar paciente.',
+            err,
+        });
     }
 };
 
@@ -292,4 +404,5 @@ module.exports = {
     obtenerProfesionalPaciente,
     obtenerAtencionesPaciente,
     obtenerPacientePorId,
+    agregarPacienteCompleto,
 };

@@ -267,6 +267,9 @@ export default function Admin() {
             subtitle='Panel de Administracion'
             actions={
                 <>
+                    <a href='/laboratorio' className='btn-primary'>
+                        Laboratorio
+                    </a>
                     <span className='badge purple'>{userInfo?.nombre}</span>
                     <LogoutButton />
                 </>
