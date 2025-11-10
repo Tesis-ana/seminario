@@ -32,10 +32,13 @@ app.use((req, res, next) => {
     const openPaths = ['/', '/users/login', '/users/crear'];
     const imagenRegex = /^\/imagenes\/\d+\/archivo$/;
     const maskRegex = /^\/segmentaciones\/\d+\/mask$/;
+    const contourRegex = /^\/segmentaciones\/\d+\/contorno$/;
     if (
         openPaths.includes(req.path) ||
         (req.method === 'GET' &&
-            (imagenRegex.test(req.path) || maskRegex.test(req.path)))
+            (imagenRegex.test(req.path) ||
+                maskRegex.test(req.path) ||
+                contourRegex.test(req.path)))
     ) {
         return next();
     }
@@ -66,9 +69,140 @@ async function connectToDatabase() {
     }
 }
 
+// Función para crear usuario admin por defecto si no existe
+async function createDefaultAdmin() {
+    try {
+        const bcrypt = require('bcrypt');
+
+        // Verificar si existe al menos un usuario con rol admin
+        const adminCount = await db.User.count({
+            where: { rol: 'admin' },
+        });
+
+        if (adminCount === 0) {
+            console.log(
+                '⚠️  No se encontró ningún administrador en la base de datos.'
+            );
+            console.log('📝 Creando usuario administrador por defecto...');
+
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash('1234', saltRounds);
+
+            await db.User.create({
+                rut: '11.111.111-1',
+                nombre: 'Administrador',
+                correo: 'admin@sistema.cl',
+                contrasena_hash: hashedPassword,
+                rol: 'admin',
+            });
+
+            console.log('✅ Usuario administrador creado exitosamente');
+            console.log('   RUT: 11.111.111-1');
+            console.log('   Contraseña: 1234');
+        } else {
+            console.log(
+                '✅ Se encontraron',
+                adminCount,
+                'administrador(es) en la base de datos.'
+            );
+        }
+    } catch (error) {
+        console.error(
+            '❌ Error al crear usuario administrador por defecto:',
+            error.message
+        );
+    }
+}
+
+// Función para instalar dependencias de Python en el entorno virtual
+async function installPythonDependencies() {
+    const { spawn } = require('child_process');
+
+    try {
+        console.log('📦 Verificando dependencias de Python...');
+
+        const envName = process.env.CATEGORIZADOR_CONDA_ENV || 'seminario';
+        const condaCmd = process.env.CONDA_BIN || 'conda';
+        const packages = ['tqdm', 'tensorflow', 'xgboost'];
+
+        // Construir el comando para instalar paquetes
+        const args = ['install', '-n', envName, '-y', '--quiet', ...packages];
+
+        console.log(`🔧 Instalando dependencias en entorno '${envName}'...`);
+        console.log(`   Paquetes: ${packages.join(', ')}`);
+
+        return new Promise((resolve, reject) => {
+            const process = spawn(condaCmd, args, {
+                shell: true,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            if (process.stdout) {
+                process.stdout.on('data', (data) => {
+                    stdout += data.toString();
+                });
+            }
+
+            if (process.stderr) {
+                process.stderr.on('data', (data) => {
+                    stderr += data.toString();
+                });
+            }
+
+            process.on('error', (error) => {
+                console.warn(
+                    '⚠️  No se pudieron instalar las dependencias de Python:',
+                    error.message
+                );
+                console.warn(
+                    '   El sistema continuará, pero puede haber errores al usar el categorizador.'
+                );
+                resolve(); // No rechazar, solo advertir
+            });
+
+            process.on('close', (code) => {
+                if (code === 0) {
+                    console.log(
+                        '✅ Dependencias de Python instaladas correctamente'
+                    );
+                    resolve();
+                } else {
+                    console.warn(
+                        `⚠️  La instalación de dependencias falló con código ${code}`
+                    );
+                    if (stderr) {
+                        console.warn('   Error:', stderr.trim());
+                    }
+                    console.warn(
+                        '   El sistema continuará, pero puede haber errores al usar el categorizador.'
+                    );
+                    resolve(); // No rechazar, solo advertir
+                }
+            });
+        });
+    } catch (error) {
+        console.warn(
+            '⚠️  Error al instalar dependencias de Python:',
+            error.message
+        );
+        console.warn(
+            '   El sistema continuará, pero puede haber errores al usar el categorizador.'
+        );
+    }
+}
+
 // Iniciar conexión a la base de datos
 connectToDatabase()
-    .then(() => {
+    .then(async () => {
+        // Crear usuario admin por defecto si no existe
+        await createDefaultAdmin();
+
+        // Instalar dependencias de Python
+        await installPythonDependencies();
+
         // Configurar rutas solo después de conectar a la base de datos
         app.get('/', (req, res) => {
             res.json({ message: 'Aplicación funcionando.' });
@@ -79,10 +213,11 @@ connectToDatabase()
 
         const PORT = values.RUN_PORT || 5001;
         const HOST = values.RUN_HOST || '0.0.0.0'; // Escuchar en todas las interfaces
+        const BACKEND_URL = values.BACKEND_URL || `http://localhost:${PORT}`;
 
         app.listen(PORT, HOST, () => {
             console.log(`🚀 Servidor corriendo en http://${HOST}:${PORT}`);
-            console.log(`🌐 Accesible desde: http://m3.blocktype.cl:${PORT}`);
+            console.log(`🌐 Accesible desde: ${BACKEND_URL}`);
         });
     })
     .catch((error) => {

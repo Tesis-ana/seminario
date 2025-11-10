@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Limpiar Caché del Navegador</title>
+    </head>
+    <body>
+        <h1>Limpieza de Caché</h1>
+        <button onclick="clearAll()">Limpiar Todo</button>
+        <pre id="output"></pre>
+
+        <script>
+            function clearAll() {
+                const output = document.getElementById('output');
+                output.textContent = '';
+
+                // Limpiar localStorage
+                output.textContent += 'Limpiando localStorage...\n';
+                localStorage.clear();
+                output.textContent += '✅ localStorage limpiado\n\n';
+
+                // Limpiar sessionStorage
+                output.textContent += 'Limpiando sessionStorage...\n';
+                sessionStorage.clear();
+                output.textContent += '✅ sessionStorage limpiado\n\n';
+
+                // Limpiar cookies
+                output.textContent += 'Limpiando cookies...\n';
+                document.cookie.split(';').forEach(function (c) {
+                    document.cookie = c
+                        .replace(/^ +/, '')
+                        .replace(
+                            /=.*/,
+                            '=;expires=' + new Date().toUTCString() + ';path=/'
+                        );
+                });
+                output.textContent += '✅ Cookies limpiadas\n\n';
+
+                output.textContent +=
+                    '🎉 Limpieza completada. Por favor, cierra esta pestaña y abre la aplicación de nuevo.\n';
+            }
+        </script>
+    </body>
+</html>

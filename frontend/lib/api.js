@@ -1,6 +1,6 @@
 // Usar variable de entorno o fallback al dominio de producción
 export const BACKEND_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'https://m3.blocktype.cl:5001';
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export async function apiFetch(path, options = {}) {
     const headers = options.headers || {};
@@ -10,10 +10,14 @@ export async function apiFetch(path, options = {}) {
             headers['Authorization'] = `Bearer ${token}`;
         }
     }
-    // Construir URL completa, evitando doble /api si ya está en BACKEND_URL
-    const baseUrl = BACKEND_URL.endsWith('') ? BACKEND_URL : `${BACKEND_URL}`;
+    // Construir URL completa
+    const baseUrl = BACKEND_URL.endsWith('/')
+        ? BACKEND_URL.slice(0, -1)
+        : BACKEND_URL;
     const url = path.startsWith('/')
         ? `${baseUrl}${path}`
         : `${baseUrl}/${path}`;
+
+    console.log('API Request URL:', url); // Para debugging
     return fetch(url, { ...options, headers });
 }

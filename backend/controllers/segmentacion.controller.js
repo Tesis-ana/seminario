@@ -617,7 +617,10 @@ const obtenerSegmentacionCompleta = async (req, res) => {
         }
 
         // Retornar información de ambas imágenes
-        const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+        // El backend no debe construir URLs absolutas, el frontend lo hará
+        const BACKEND_URL =
+            process.env.BACKEND_URL ||
+            `http://localhost:${process.env.RUN_PORT || 5001}`;
 
         return res.status(200).json({
             id: seg.id,

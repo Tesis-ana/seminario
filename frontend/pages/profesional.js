@@ -629,8 +629,7 @@ export default function ProfesionalPacientes() {
                                         <thead>
                                             <tr>
                                                 <th>Identificador</th>
-                                                <th>Imagen</th>
-                                                <th>Mascara</th>
+                                                <th>Vista Previa</th>
                                                 <th>Lado</th>
                                                 {Array.from(
                                                     { length: 8 },
@@ -689,26 +688,48 @@ export default function ProfesionalPacientes() {
                                                         >
                                                             <td>{img.id}</td>
                                                             <td>
-                                                                <img
-                                                                    src={`${BACKEND_URL}/imagenes/${img.id}/archivo`}
-                                                                    alt='img'
-                                                                    width={64}
-                                                                    height={64}
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                {seg ? (
+                                                                <div
+                                                                    style={{
+                                                                        position:
+                                                                            'relative',
+                                                                        maxWidth: 200,
+                                                                        display:
+                                                                            'inline-block',
+                                                                    }}
+                                                                >
                                                                     <img
-                                                                        src={`${BACKEND_URL}/segmentaciones/${img.id}/mask`}
-                                                                        alt='mask'
-                                                                        width={
-                                                                            64
-                                                                        }
-                                                                        height={
-                                                                            64
-                                                                        }
+                                                                        src={`${BACKEND_URL}/imagenes/${img.id}/archivo`}
+                                                                        alt='img'
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            height: 'auto',
+                                                                            display:
+                                                                                'block',
+                                                                            borderRadius:
+                                                                                '4px',
+                                                                        }}
                                                                     />
-                                                                ) : null}
+                                                                    {seg && (
+                                                                        <img
+                                                                            src={`${BACKEND_URL}/segmentaciones/${img.id}/contorno`}
+                                                                            alt='contorno'
+                                                                            style={{
+                                                                                position:
+                                                                                    'absolute',
+                                                                                top: 0,
+                                                                                left: 0,
+                                                                                width: '100%',
+                                                                                height: '100%',
+                                                                                objectFit:
+                                                                                    'fill',
+                                                                                pointerEvents:
+                                                                                    'none',
+                                                                                opacity: 0.7,
+                                                                                // transform: 'scaleX(-1)',
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                             <td>
                                                                 <span

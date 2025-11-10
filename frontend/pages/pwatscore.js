@@ -13,6 +13,15 @@ export default function Pwatscore() {
     const [token, setToken] = useState(null);
     const [imagenId, setImagenId] = useState('');
     const [imagen, setImagen] = useState(null);
+
+    // Debug: Verificar el valor de BACKEND_URL
+    useEffect(() => {
+        console.log('🔍 BACKEND_URL:', BACKEND_URL);
+        console.log(
+            '🔍 process.env.NEXT_PUBLIC_API_URL:',
+            process.env.NEXT_PUBLIC_API_URL
+        );
+    }, []);
     const [maskFile, setMaskFile] = useState(null);
     const [segmentacionId, setSegmentacionId] = useState(null);
     const [maskUrl, setMaskUrl] = useState(null);
@@ -36,6 +45,10 @@ export default function Pwatscore() {
     const [actualizandoLado, setActualizandoLado] = useState(false);
     const [paciente, setPaciente] = useState(null);
     const [estadoPaciente, setEstadoPaciente] = useState(null);
+    const [imagenDimensions, setImagenDimensions] = useState({
+        width: 256,
+        height: 256,
+    });
 
     const canvasRef = useRef(null);
     const contourCanvasRef = useRef(null);
@@ -161,6 +174,29 @@ export default function Pwatscore() {
         if (router.isReady && router.query.id) handleBuscar(router.query.id);
     }, [router.isReady, router.query.id]);
 
+    // Cargar dimensiones reales de la imagen
+    useEffect(() => {
+        if (!imagen) return;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = `${BACKEND_URL}/imagenes/${imagen.id}/archivo`;
+        img.onload = () => {
+            setImagenDimensions({
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+            });
+            console.log(
+                `📐 Dimensiones originales de la imagen: ${img.naturalWidth}x${img.naturalHeight}`
+            );
+        };
+        img.onerror = () => {
+            console.error('❌ Error cargando imagen para obtener dimensiones');
+            // Fallback a 256x256 si hay error
+            setImagenDimensions({ width: 256, height: 256 });
+        };
+    }, [imagen]);
+
     const handleManual = async () => {
         if (!imagen || !maskFile) return;
         setError('');
@@ -228,11 +264,11 @@ export default function Pwatscore() {
         setShowCanvas(true);
         if (canvasRef.current) {
             const canvas = canvasRef.current;
-            canvas.width = 256;
-            canvas.height = 256;
+            canvas.width = imagenDimensions.width;
+            canvas.height = imagenDimensions.height;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillRect(0, 0, imagenDimensions.width, imagenDimensions.height);
         }
     };
 
@@ -353,7 +389,13 @@ export default function Pwatscore() {
             img.src = maskUrl;
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, 256, 256);
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    imagenDimensions.width,
+                    imagenDimensions.height
+                );
 
                 // Ahora dibujar solo el contorno (SIN RELLENAR)
                 dibujarContornoSinRelleno(ctx);
@@ -362,7 +404,7 @@ export default function Pwatscore() {
             // Si no hay máscara base, solo dibujar el contorno
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillRect(0, 0, imagenDimensions.width, imagenDimensions.height);
             dibujarContornoSinRelleno(ctx);
         }
     };
@@ -398,7 +440,13 @@ export default function Pwatscore() {
             img.src = maskUrl;
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, 256, 256);
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    imagenDimensions.width,
+                    imagenDimensions.height
+                );
             };
         }
     };
@@ -407,19 +455,22 @@ export default function Pwatscore() {
         if (!contourCanvasRef.current) return;
 
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 256;
-        tempCanvas.height = 256;
+        const { width, height } = imagenDimensions;
+        tempCanvas.width = width;
+        tempCanvas.height = height;
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(maskImg, 0, 0, 256, 256);
+        tempCtx.drawImage(maskImg, 0, 0, width, height);
 
-        const imageData = tempCtx.getImageData(0, 0, 256, 256);
+        const imageData = tempCtx.getImageData(0, 0, width, height);
         const data = imageData.data;
 
         // Crear una matriz binaria
-        const binary = new Array(256).fill(0).map(() => new Array(256).fill(0));
-        for (let y = 0; y < 256; y++) {
-            for (let x = 0; x < 256; x++) {
-                const idx = (y * 256 + x) * 4;
+        const binary = new Array(height)
+            .fill(0)
+            .map(() => new Array(width).fill(0));
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
                 const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
                 binary[y][x] = gray > 128 ? 1 : 0;
             }
@@ -428,12 +479,12 @@ export default function Pwatscore() {
         // Detectar bordes
         const contourCanvas = contourCanvasRef.current;
         const ctx = contourCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 256, 256);
+        ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = contourColor;
         ctx.lineWidth = contourThickness;
 
-        for (let y = 1; y < 255; y++) {
-            for (let x = 1; x < 255; x++) {
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
                 if (binary[y][x] === 1) {
                     // Verificar si es un borde
                     const isBorder =
@@ -466,21 +517,27 @@ export default function Pwatscore() {
     useEffect(() => {
         if (!showCanvas || !canvasRef.current) return;
         const canvas = canvasRef.current;
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = imagenDimensions.width;
+        canvas.height = imagenDimensions.height;
         const ctx = canvas.getContext('2d');
         if (maskUrl) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.src = maskUrl;
             img.onload = () => {
-                ctx.drawImage(img, 0, 0, 256, 256);
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    imagenDimensions.width,
+                    imagenDimensions.height
+                );
             };
         } else {
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillRect(0, 0, imagenDimensions.width, imagenDimensions.height);
         }
-    }, [maskUrl, showCanvas]);
+    }, [maskUrl, showCanvas, imagenDimensions]);
 
     const handleGuardarMascara = async () => {
         if (!canvasRef.current || !imagen) return;
@@ -1074,28 +1131,30 @@ export default function Pwatscore() {
                     <div
                         style={{
                             position: 'relative',
-                            width: 256 * zoom,
-                            height: 256 * zoom,
+                            width: imagenDimensions.width * zoom,
+                            height: imagenDimensions.height * zoom,
                             marginTop: 12,
                         }}
                     >
                         <img
                             src={`${BACKEND_URL}/imagenes/${imagen.id}/archivo`}
                             alt='imagen'
-                            width={256 * zoom}
-                            height={256 * zoom}
+                            width={imagenDimensions.width * zoom}
+                            height={imagenDimensions.height * zoom}
                         />
                         {showCanvas && showContour && (
                             <canvas
                                 ref={contourCanvasRef}
-                                width={256}
-                                height={256}
+                                width={imagenDimensions.width}
+                                height={imagenDimensions.height}
                                 style={{
                                     position: 'absolute',
                                     top: 0,
                                     left: 0,
-                                    width: `${256 * zoom}px`,
-                                    height: `${256 * zoom}px`,
+                                    width: `${imagenDimensions.width * zoom}px`,
+                                    height: `${
+                                        imagenDimensions.height * zoom
+                                    }px`,
                                     pointerEvents: 'none',
                                 }}
                             />
@@ -1109,8 +1168,10 @@ export default function Pwatscore() {
                                     left: 0,
                                     cursor: 'crosshair',
                                     opacity: editOpacity,
-                                    width: `${256 * zoom}px`,
-                                    height: `${256 * zoom}px`,
+                                    width: `${imagenDimensions.width * zoom}px`,
+                                    height: `${
+                                        imagenDimensions.height * zoom
+                                    }px`,
                                 }}
                                 onMouseDown={startDraw}
                                 onMouseUp={endDraw}
